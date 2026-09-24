@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ai.pikom.org.my/sitemap.xml
+
+User-agent: Baiduspider
+Crawl-delay: 10
