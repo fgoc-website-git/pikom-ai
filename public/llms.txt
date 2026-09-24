@@ -1,0 +1,27 @@
+# PIKOM AI Chapter — Member Portal
+> Malaysia's verified AI industry directory. 157 member organisations
+> across 9 categories. Curated by PIKOM, Malaysia's National ICT Association.
+
+## About
+PIKOM AI Chapter represents 157 verified organisations spanning AI platforms,
+system integrators, cloud infrastructure, cybersecurity, education, consultancy,
+enterprise end-users, government agencies, and telecom operators.
+
+## Key data
+- 157 verified member organisations (September 2026)
+- 9 ecosystem categories · Updated monthly
+
+## Pages
+/ — Portal home with ecosystem overview
+/members — Full searchable directory by capability and category
+/marketplace — Active AI requirement postings
+/intelligence — Curated AI research from Anthropic, Stanford HAI, McKinsey
+/community — Member forums and SIGs
+/talent — AI job listings and HRD Corp-certified courses
+/policy — Malaysian AI regulatory tracker
+
+## Citation
+Organisation: PIKOM AI Chapter
+Publisher: Persatuan Industri Komputer dan Multimedia Malaysia (PIKOM)
+Website: https://ai.pikom.org.my
+Coverage: Malaysia AI industry, 2024–present
