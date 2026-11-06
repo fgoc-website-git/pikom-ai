@@ -3,21 +3,21 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 
 const TIERS = [
-  { name: "Associate Member", who: "Non-tech companies incorporated in Malaysia — e.g. banks and manufacturers buying AI.", annual: "RM1,000", entry: "RM500", items: ["Post RFPs to find AI vendors", "3 active job posts", "Event & Academy member rates", "Summary reports"] },
-  { name: "Ordinary Member", who: "IT and tech companies incorporated in Malaysia.", annual: "RM2,000", entry: "RM1,000", hl: true, items: ["Verified directory listing", "See & respond to RFPs", "10 active job posts", "Full research reports", "Policy working group seat"] },
-  { name: "Overseas Member", who: "Companies incorporated outside Malaysia entering the market.", annual: "RM4,000", entry: "RM2,000", items: ["Verified directory listing", "See & respond to RFPs", "5 active job posts", "Agency connect introductions", "Full research reports"] },
-  { name: "Individual Member", who: "Professionals, academics and consultants joining PIKOM in their own name.", annual: "[fee — confirm]", entry: "[fee — confirm]", items: ["Personal profile in the network", "Events & community forums", "1 active job post", "Summary reports"] },
+  { name: "Associate Member", who: "Non-tech companies incorporated in Malaysia — e.g. banks and manufacturers buying AI.", annual: "RM1,000", entry: "RM500", items: ["Full AI Xchange access for 5 people", "Find AI vendors and post RFPs", "Event & Academy member rates", "PIKOM research"] },
+  { name: "Ordinary Member", who: "IT and tech companies incorporated in Malaysia.", annual: "RM2,000", entry: "RM1,000", hl: true, items: ["Full AI Xchange access for 5 people", "Verified directory listing", "Respond to RFPs, post jobs", "Policy working group seat", "PIKOM research"] },
+  { name: "Overseas Member", who: "Companies incorporated outside Malaysia entering the market.", annual: "RM4,000", entry: "RM2,000", items: ["Full AI Xchange access for 5 people", "Verified directory listing", "Respond to RFPs, post jobs", "Agency connect introductions"] },
+  { name: "Individual Member", who: "Professionals, academics and consultants joining PIKOM in their own name.", annual: "[fee — confirm]", entry: "[fee — confirm]", items: ["Full AI Xchange access for you", "Member contacts and directory", "Members-only events", "PIKOM research"] },
 ];
 const ROWS = [
-  ["Browse directory, jobs, events, policy", "Yes", "Yes", "Yes", "Yes", "Yes"],
-  ["People who can sign in", "—", "5 per company", "5 per company", "5 per company", "1 (own email)"],
-  ["See member contacts & team pages", "—", "Yes", "Yes", "Yes", "Yes"],
-  ["Directory listing", "—", "Basic", "Full + spotlight", "Full", "Personal"],
-  ["Active job posts", "—", "3", "10", "5", "1"],
-  ["RFP budgets & respond", "—", "Post only", "Yes", "Yes", "View"],
-  ["Community forums", "Read", "Post", "Post", "Post", "Post"],
-  ["Full research reports", "Summaries", "Summaries", "Yes", "Yes", "Summaries"],
-  ["Policy working groups", "—", "Observer", "Seat", "Observer", "Observer"],
+  ["Read policy, governance and insights", "Yes", "Yes"],
+  ["See which companies are PIKOM members", "Yes", "Yes"],
+  ["Company details, people, titles and contacts", "—", "Yes"],
+  ["RFPs: buyer, budget, requirements, respond", "Title only", "Yes"],
+  ["Jobs: salary, description, apply", "Title only", "Yes"],
+  ["Post RFPs and jobs", "—", "Yes"],
+  ["Events", "Open events only", "All, incl. members-only"],
+  ["Past event slides & recordings", "—", "Yes"],
+  ["People who can sign in", "1 (own email)", "5 per company · 1 per individual member"],
 ];
 
 export default function Membership() {
@@ -44,13 +44,13 @@ export default function Membership() {
               <a className={`btn${t.hl ? " accent" : ""}`} style={{ marginTop: "auto" }} href="#contact">Enquire with PIKOM</a>
             </div>))}
         </div>
-        <p className="small muted" style={{ marginTop: 12 }}>Company fees are PIKOM's published rates. Portal limits (job posts, listings) are a proposal for review.</p>
+        <p className="small muted" style={{ marginTop: 12 }}>Company fees are PIKOM's published rates. On AI Xchange every paying member gets full access.</p>
       </section>
 
       <section className="wrap section">
-        <h2 className="h2" style={{ marginBottom: 16 }}>What each account can do on AI Xchange</h2>
-        <div className="table-wrap"><table style={{ minWidth: 820 }}>
-          <thead><tr><th>Feature</th><th>Not signed in</th><th>Associate</th><th>Ordinary</th><th>Overseas</th><th>Individual</th></tr></thead>
+        <h2 className="h2" style={{ marginBottom: 16 }}>Guest vs member access</h2>
+        <div className="table-wrap"><table style={{ minWidth: 620 }}>
+          <thead><tr><th>What you can do</th><th>Free guest account</th><th>PIKOM members (company or individual)</th></tr></thead>
           <tbody>{ROWS.map(r => <tr key={r[0]}><th scope="row" style={{ background: "none", textTransform: "none", letterSpacing: 0, fontSize: 14, color: "var(--ink)", fontWeight: 500, whiteSpace: "normal" }}>{r[0]}</th>{r.slice(1).map((c, i) => <td key={i} className={i === 0 ? "muted" : ""}>{c}</td>)}</tr>)}</tbody>
         </table></div>
       </section>
@@ -63,7 +63,7 @@ export default function Membership() {
             ["We use more than one email domain", "The secretariat can whitelist each domain. All of them share your company's 5 seats [to confirm]."],
             ["Who is the main account holder?", "The person PIKOM names when your domain is whitelisted — usually your PIKOM contact. They see everyone who joins and edit the company profile."],
             ["I left my company", "Your account stops when your work email is removed. Individual members can keep a personal account."],
-            ["Can I sign up with Gmail?", "Only if you are a PIKOM Individual Member and the secretariat has whitelisted that exact address."]].map(([q, a]) => (
+            ["Can I sign up with Gmail?", "Yes, as a free guest. For full access you need to be a PIKOM Individual Member, and the secretariat whitelists that exact address."]].map(([q, a]) => (
             <div key={q} className="card stack" style={{ gap: 6 }}><h3 className="h3" style={{ fontSize: 16 }}>{q}</h3><p className="muted" style={{ fontSize: 14 }}>{a}</p></div>))}
         </div>
       </section>

@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useStore, roleLabel, type CompanyProfile } from "@/lib/store";
+import { useStore, roleLabel, type CompanyProfile, today } from "@/lib/store";
+import { EventCard } from "@/components/EventCard";
 import { CAPABILITIES, COMPANY_CATEGORIES, INDUSTRIES_SERVED, STATES, EMPLOYEES, INTERESTS } from "@/lib/options";
 import { slugify } from "@/lib/directory";
 import { MembersOnly, Field, Area, SelectOther, MultiOther, ErrorBox, SeatDots, Avatar, useToast, fmtDate } from "@/components/ui";
 
-type Tab = "profile" | "company" | "team" | "jobs" | "password";
+type Tab = "profile" | "company" | "team" | "events" | "jobs" | "password";
 
 export default function Account() { return <MembersOnly><AccountInner /></MembersOnly>; }
 
@@ -18,7 +19,8 @@ function AccountInner() {
   useEffect(() => { const p = new URLSearchParams(window.location.search); if (p.get("welcome")) setWelcome(true); const t = p.get("tab") as Tab; if (t) setTab(t); }, []);
   if (!me) return null;
   const isOrg = !!myOrg;
-  const tabs: [Tab, string][] = [["profile", "My profile"], ...(isOrg ? [["company", "Company profile"], ["team", "Team seats"]] as [Tab, string][] : []), ["jobs", "My job posts"], ["password", "Password"]];
+  const paying = ["main", "member", "individual"].includes(me.role);
+  const tabs: [Tab, string][] = [["profile", "My profile"], ...(isOrg ? [["company", "Company profile"], ["team", "Team seats"]] as [Tab, string][] : []), ["events", "My events"], ...(paying ? [["jobs", "My posts"]] as [Tab, string][] : []), ["password", "Password"]];
   const renewal = myOrg?.renewal || db.individuals.find(i => i.email === me.email)?.renewal;
 
   return (
@@ -30,18 +32,20 @@ function AccountInner() {
           <div className="stack" style={{ gap: 2 }}>
             <h1 className="h2">{me.name}</h1>
             <span className="muted">{me.jobTitle || "—"}{myOrg ? ` · ${myOrg.name}` : ""}</span>
-            <span className="row" style={{ gap: 6 }}><span className={`badge ${me.role === "main" ? "blue" : "green"}`}>{roleLabel(me.role)}</span>{myOrg && <span className="badge">{myOrg.type}</span>}{me.role === "individual" && <span className="badge">Individual Member</span>}</span>
+            <span className="row" style={{ gap: 6 }}><span className={`badge ${me.role === "main" ? "blue" : "green"}`}>{roleLabel(me.role)}</span>{myOrg && <span className="badge">{myOrg.type}</span>}{me.role === "individual" && <span className="badge">Individual Member</span>}{me.role === "guest" && <span className="badge">Limited access</span>}</span>
           </div>
         </div>
         {renewal && <div className="alert warn small">PIKOM membership renews <b>{fmtDate(renewal)}</b>. Renewals are handled by the PIKOM secretariat.</div>}
       </div>
 
+      {me.role === "guest" && <div className="alert info" style={{ marginBottom: 16 }}>You have a free guest account. To see member details, contacts, RFPs and jobs in full, your company needs to join PIKOM — or join as an Individual Member. <Link href="/membership">How to become a member</Link></div>}
       <div className="tabs" role="tablist">
         {tabs.map(([k, l]) => <button key={k} role="tab" className="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === "profile" && <MyProfile onSaved={() => toast.show("Profile saved")} />}
       {tab === "company" && <CompanyTab onSaved={() => toast.show("Company profile saved")} />}
       {tab === "team" && <TeamTab />}
+      {tab === "events" && <MyEvents />}
       {tab === "jobs" && <MyJobs />}
       {tab === "password" && <PasswordTab />}
       {toast.node}
@@ -51,19 +55,19 @@ function AccountInner() {
 
 function MyProfile({ onSaved }: { onSaved: () => void }) {
   const { me, updateMe } = useStore();
-  const [f, setF] = useState({ name: me!.name, jobTitle: me!.jobTitle, phone: me!.phone, linkedin: me!.linkedin, bio: me!.bio, interests: me!.interests, showInDirectory: me!.showInDirectory });
+  const [f, setF] = useState({ name: me!.name, jobTitle: me!.jobTitle, phone: me!.phone, linkedin: me!.linkedin, bio: me!.bio, interests: me!.interests });
   return (
     <form className="card stack" style={{ gap: 18 }} onSubmit={e => { e.preventDefault(); updateMe(f); onSaved(); }}>
       <div className="form-grid">
         <Field label="Full name" required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
         <Field label="Job title" value={f.jobTitle} onChange={e => setF({ ...f, jobTitle: e.target.value })} />
         <Field label="Email" value={me!.email} readOnly hint="Your login. Contact PIKOM to change it." />
-        <Field label="Mobile (optional)" type="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} hint="Only shown to signed-in members" />
+        <Field label="Mobile (optional)" type="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} hint="Shown to PIKOM members" />
         <Field label="LinkedIn profile URL" type="url" placeholder="https://www.linkedin.com/in/…" value={f.linkedin} onChange={e => setF({ ...f, linkedin: e.target.value })} />
       </div>
       <Area label="About me" placeholder="What you work on and what you'd like to connect about" value={f.bio} onChange={e => setF({ ...f, bio: e.target.value })} />
       <MultiOther legend="I'm on AI Xchange for" options={INTERESTS} value={f.interests} onChange={v => setF({ ...f, interests: v })} />
-      <label className="row" style={{ gap: 10, fontSize: 14, flexWrap: "nowrap" }}><input type="checkbox" checked={f.showInDirectory} onChange={e => setF({ ...f, showInDirectory: e.target.checked })} />Show me on my company's directory page (signed-in members only)</label>
+      {me!.orgId && <p className="small muted">Your name, job title, email and phone are shown to PIKOM members on your company's page.</p>}
       <div><button className="btn primary">Save profile</button></div>
     </form>
   );
@@ -82,7 +86,7 @@ function CompanyTab({ onSaved }: { onSaved: () => void }) {
         <dt>Capabilities</dt><dd>{p.capabilities.join(", ") || "—"}</dd><dt>Industries served</dt><dd>{p.industries.join(", ") || "—"}</dd>
         <dt>Website</dt><dd>{p.website || "—"}</dd><dt>Location</dt><dd>{p.state || "—"}</dd><dt>Size</dt><dd>{p.employees || "—"}</dd>
       </dl>
-      <Link className="btn" style={{ alignSelf: "flex-start" }} href={`/directory/${slugify(myOrg!.name)}`}>View public profile</Link>
+      <Link className="btn" style={{ alignSelf: "flex-start" }} href={`/members/${slugify(myOrg!.name)}`}>View public profile</Link>
     </div>
   );
   const done = [p.about, p.website, p.category, p.capabilities.length, p.industries.length, p.state, p.employees].filter(Boolean).length;
@@ -90,7 +94,7 @@ function CompanyTab({ onSaved }: { onSaved: () => void }) {
     <form className="card stack" style={{ gap: 18 }} onSubmit={e => { e.preventDefault(); updateOrgProfile(myOrg!.id, p); onSaved(); }}>
       <div className="row between">
         <div className="stack" style={{ gap: 6, minWidth: 240 }}><span className="small" style={{ fontWeight: 600 }}>Profile {Math.round(done / 7 * 100)}% complete</span><div className="bar" style={{ width: 240 }}><i style={{ width: `${done / 7 * 100}%`, background: "var(--green)" }} /></div></div>
-        <Link href={`/directory/${slugify(myOrg!.name)}`}>View public profile</Link>
+        <Link href={`/members/${slugify(myOrg!.name)}`}>View public profile</Link>
       </div>
       <div className="form-grid">
         <Field label="Company name" value={myOrg!.name} readOnly hint="As registered with PIKOM. Contact PIKOM to change." />
@@ -104,7 +108,6 @@ function CompanyTab({ onSaved }: { onSaved: () => void }) {
       <Area label="What does your company do? (shown in the directory)" maxLength={500} value={p.about} onChange={e => setP({ ...p, about: e.target.value })} hint={`${p.about.length}/500`} />
       <MultiOther legend="AI capabilities" max={5} options={CAPABILITIES} value={p.capabilities} onChange={v => setP({ ...p, capabilities: v })} />
       <MultiOther legend="Industries you serve" options={INDUSTRIES_SERVED} value={p.industries} onChange={v => setP({ ...p, industries: v })} />
-      <label className="row" style={{ gap: 10, fontSize: 14, flexWrap: "nowrap" }}><input type="checkbox" checked={p.showInDirectory} onChange={e => setP({ ...p, showInDirectory: e.target.checked })} />List my company in the AI Xchange directory</label>
       <div><button className="btn primary">Save company profile</button></div>
     </form>
   );
@@ -138,12 +141,33 @@ function TeamTab() {
   );
 }
 
+function MyEvents() {
+  const { db, me } = useStore();
+  const mine = db.events.filter(e => e.registrations.some(r => r.userId === me!.id && r.status !== "cancelled")).sort((a, b) => a.date.localeCompare(b.date));
+  const up = mine.filter(e => e.date >= today()), past = mine.filter(e => e.date < today());
+  return (
+    <div className="stack" style={{ gap: 16 }}>
+      {mine.length === 0 && <div className="empty">You haven't registered for any events. <Link href="/events">Browse events</Link></div>}
+      {up.length > 0 && <><h2 className="h3">Upcoming</h2><div className="grid">{up.map(e => <EventCard key={e.id} e={e} />)}</div></>}
+      {past.length > 0 && <><h2 className="h3">Past</h2><div className="grid">{past.map(e => <EventCard key={e.id} e={e} />)}</div></>}
+    </div>
+  );
+}
+
 function MyJobs() {
-  const { db, me, myOrg, deleteJob } = useStore();
+  const { db, me, myOrg, deleteJob, updateRfp } = useStore();
   const mine = db.jobs.filter(j => (myOrg ? j.orgId === myOrg.id : j.postedBy === me!.email));
+  const rfps = db.rfps.filter(r => (myOrg ? r.orgId === myOrg.id : r.postedBy === me!.email));
   return (
     <div className="stack" style={{ gap: 12 }}>
-      <div className="row between"><p className="muted">{myOrg ? "Jobs posted by anyone at your company." : "Jobs you have posted."}</p><Link className="btn primary" href="/jobs?post=1">Post a job</Link></div>
+      <div className="row between"><h2 className="h3">RFPs</h2><Link className="btn" href="/opportunities">Post an RFP</Link></div>
+      {rfps.length === 0 ? <div className="empty">No RFPs posted.</div> : rfps.map(r => (
+        <div key={r.id} className="card tight row between">
+          <div className="stack" style={{ gap: 2 }}><b>{r.title}</b><span className="small muted">Closes {fmtDate(r.closes)} · {r.status}</span></div>
+          <label className="field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>Status<select className="select" style={{ width: "auto" }} value={r.status} onChange={e => updateRfp(r.id, { status: e.target.value as "Open" })}><option>Open</option><option>Closed</option><option>Awarded</option></select></label>
+        </div>))}
+      <div className="row between" style={{ marginTop: 12 }}><h2 className="h3">Jobs</h2><Link className="btn primary" href="/opportunities?tab=jobs&post=1">Post a job</Link></div>
+      <p className="muted small">{myOrg ? "Posted by anyone at your company." : "Posted by you."}</p>
       {mine.length === 0 ? <div className="empty">No job posts yet.</div> : mine.map(j => (
         <div key={j.id} className="card tight row between">
           <div className="stack" style={{ gap: 2 }}><b>{j.title}</b><span className="small muted">{j.location} · {j.mode} · posted {fmtDate(j.postedOn)}{j.postedBy ? ` by ${j.postedBy}` : ""}</span></div>

@@ -85,25 +85,27 @@ export function useToast() {
   return { show: setT, node: t ? <div className="toast" role="status">{t}</div> : null };
 }
 
-/** Wraps member-only pages. */
-export function MembersOnly({ children, admin }: { children: React.ReactNode; admin?: boolean }) {
+/** Wraps pages that need a signed-in account (any role). `staff` = content admin or super admin. */
+export function MembersOnly({ children, staff }: { children: React.ReactNode; staff?: boolean }) {
   const { me, ready } = useStore();
   if (!ready) return <div className="wrap page-head muted">Loading…</div>;
   if (!me) return (
     <div className="wrap page-head"><div className="card stack" style={{ maxWidth: 560 }}>
-      <h1 className="h2">Members only</h1>
-      <p className="muted">Sign in with your company or individual PIKOM member email to continue.</p>
-      <div className="row"><Link className="btn primary" href="/signin">Sign in</Link><Link className="btn" href="/register">Activate access</Link></div>
+      <h1 className="h2">Please sign in</h1>
+      <p className="muted">Sign in with your AI Xchange account to continue.</p>
+      <div className="row"><Link className="btn primary" href="/signin">Sign in</Link><Link className="btn" href="/register">Join AI Xchange</Link></div>
     </div></div>
   );
-  if (admin && me.role !== "superadmin") return <div className="wrap page-head"><ErrorBox code="AX-403" msg="This page is for PIKOM super admins only." /></div>;
+  if (staff && me.role !== "superadmin" && me.role !== "contentadmin") return <div className="wrap page-head"><ErrorBox code="AX-403" msg="This page is for PIKOM admins only." /></div>;
   return <>{children}</>;
 }
 
-export function Gate({ children, label = "Members only" }: { children: React.ReactNode; label?: string }) {
+/** Shown in place of member-only details for guests and visitors. */
+export function Locked({ what = "details", inline }: { what?: string; inline?: boolean }) {
   const { me } = useStore();
-  if (me) return <>{children}</>;
-  return <span className="badge">{label} · <Link href="/signin">sign in</Link></span>;
+  const msg = me ? <>Members only · <Link href="/membership">become a member</Link></> : <>Members only · <Link href="/signin">sign in</Link></>;
+  if (inline) return <span className="badge">{msg}</span>;
+  return <div className="alert info small">The {what} are for PIKOM members. {me ? <Link href="/membership">See how to become a member</Link> : <><Link href="/signin">Sign in</Link> or <Link href="/membership">become a member</Link></>}.</div>;
 }
 
 export const fmtDate = (d: string) => { if (!d) return "—"; const x = new Date(d); return isNaN(+x) ? d : x.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" }); };

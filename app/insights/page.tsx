@@ -1,27 +1,32 @@
 "use client";
-import Link from "next/link";
-import { useStore } from "@/lib/store";
-import { REPORTS } from "@/lib/content";
-import { ARTICLES } from "@/lib/data";
+import { useEffect, useState } from "react";
+import { useStore, type ContentKind } from "@/lib/store";
 import { PageHero } from "@/components/PageHero";
+import { fmtDate } from "@/components/ui";
+
+const TABS: [ContentKind, string][] = [["policy", "Policy & governance"], ["research", "PIKOM research"], ["news", "News"]];
 
 export default function Insights() {
-  const { me } = useStore();
+  const { db } = useStore();
+  const [tab, setTab] = useState<ContentKind>("policy");
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab") as ContentKind; if (t && TABS.some(([k]) => k === t)) setTab(t); }, []);
+  const list = db.content.filter(c => c.kind === tab && c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date));
   return (<>
-    <PageHero title="Insights & research" lead="PIKOM research for members, plus curated reading on AI from trusted sources." />
+    <PageHero title="Insights" lead="AI policy and governance updates, PIKOM research and industry news — open to everyone." />
     <section className="wrap section">
-      <h2 className="h2" style={{ marginBottom: 16 }}>PIKOM publications</h2>
-      <div className="grid">{REPORTS.map(r => (
-        <div key={r.t} className="card stack" style={{ gap: 8 }}><span className="small muted" style={{ fontWeight: 600 }}>{r.kind}</span><h3 className="h3">{r.t}</h3>
-          {r.member && !me ? <Link href="/signin" className="small" style={{ fontWeight: 600, marginTop: "auto" }}>Summary · sign in for the full report</Link> : <span className="small" style={{ fontWeight: 600, color: "var(--blue)", marginTop: "auto" }}>{r.member ? "Download (member copy)" : "Read online"}</span>}
-        </div>))}</div>
-    </section>
-    <section className="wrap section">
-      <h2 className="h2" style={{ marginBottom: 16 }}>Curated reading</h2>
-      <div className="grid">{ARTICLES.map(a => (
-        <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="card stack" style={{ gap: 8, color: "var(--ink)" }}>
-          <span className="small muted" style={{ fontWeight: 600 }}>{a.src} · {a.date}</span><h3 className="h3" style={{ fontSize: 17 }}>{a.title}</h3><p className="small muted" style={{ fontSize: 14 }}>{a.desc}</p>
-        </a>))}</div>
+      <div className="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} role="tab" className="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
+      {list.length === 0 ? <div className="empty">Nothing published here yet.</div> : (
+        <div className="grid2">{list.map(c => (
+          <article key={c.id} className={`card stack${c.featured ? " hl" : ""}`} style={{ gap: 8 }}>
+            <div className="row" style={{ gap: 6 }}>{c.featured && <span className="badge dark">Featured</span>}{c.policyStatus && <span className="badge orange">{c.policyStatus}</span>}<span className="small muted">{c.source} · {fmtDate(c.date)}</span></div>
+            <h2 className="h3">{c.title}</h2>
+            <p className="muted" style={{ fontSize: 15 }}>{c.summary}</p>
+            {c.body && <p style={{ fontSize: 14 }}>{c.body}</p>}
+            <div className="row" style={{ marginTop: "auto" }}>
+              {c.file && <button className="btn sm" onClick={() => alert("Demo: the PDF would download here.")}>Download PDF</button>}
+              {c.url && <a className="btn sm" href={c.url} target="_blank" rel="noreferrer">Read source ↗</a>}
+            </div>
+          </article>))}</div>)}
     </section>
   </>);
 }

@@ -1,20 +1,18 @@
 "use client";
-import { useStore } from "@/lib/store";
-import { EVENT_LIST } from "@/lib/content";
+import { useState } from "react";
+import { useStore, today } from "@/lib/store";
 import { PageHero } from "@/components/PageHero";
+import { EventCard } from "@/components/EventCard";
 
 export default function Events() {
-  const { me } = useStore();
+  const { db } = useStore();
+  const [tab, setTab] = useState<"up" | "past">("up");
+  const list = db.events.filter(e => e.status !== "Draft").filter(e => tab === "up" ? e.date >= today() : e.date < today()).sort((a, b) => tab === "up" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date));
   return (<>
-    <PageHero title="Events" lead="Member meetups, briefings and PIKOM flagship events. Dates to be confirmed by the secretariat." />
-    <section className="wrap section grid">
-      {EVENT_LIST.map(e => (
-        <div key={e.id} className="card stack" style={{ gap: 8 }}>
-          <span className="small" style={{ fontWeight: 600, color: "var(--blue)" }}>{e.when} · {e.where}</span>
-          <h2 className="h3">{e.name}</h2><p className="muted small" style={{ fontSize: 14 }}>{e.d}</p>
-          <span className="small" style={{ fontWeight: 600 }}>{me ? e.members : e.public}</span>
-          <button className="btn sm" style={{ alignSelf: "flex-start", marginTop: "auto" }} disabled={!me && e.public === "Members only"}>{me ? "RSVP" : e.public === "Members only" ? "Members only" : "Register"}</button>
-        </div>))}
+    <PageHero title="Events" lead="Member meetups, briefings and PIKOM events — online, in person or both." />
+    <section className="wrap section">
+      <div className="tabs" role="tablist">{([["up", "Upcoming"], ["past", "Past events"]] as const).map(([k, l]) => <button key={k} role="tab" className="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
+      {list.length === 0 ? <div className="empty">No events here yet.</div> : <div className="grid">{list.map(e => <EventCard key={e.id} e={e} />)}</div>}
     </section>
   </>);
 }

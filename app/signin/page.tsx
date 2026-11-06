@@ -19,7 +19,7 @@ export default function SignIn() {
         const r = signIn(email, pw);
         if (!r.ok) return setErr(r);
         const u = db.users.find(x => x.email === email.trim().toLowerCase());
-        router.push(u?.role === "superadmin" ? "/admin" : "/");
+        router.push(u && ["superadmin", "contentadmin"].includes(u.role) ? "/admin" : "/");
       }}>
         <h1 className="h2">Sign in to AI Xchange</h1>
         <Field label="Work email" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
@@ -37,7 +37,8 @@ export default function SignIn() {
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
           <li>Staff of a PIKOM member company whose email domain is whitelisted (up to 5 people per company)</li>
           <li>PIKOM individual members whose personal email is whitelisted</li>
-          <li>The PIKOM secretariat (super admins)</li>
+          <li>Anyone with a free guest account (limited access)</li>
+          <li>PIKOM staff (super admins and content admins)</li>
         </ul>
         <p className="small muted">Not a member yet? <Link href="/membership">See membership types</Link> — joining is done with PIKOM, not on this site.</p>
       </div>
