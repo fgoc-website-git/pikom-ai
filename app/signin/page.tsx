@@ -19,7 +19,7 @@ export default function SignIn() {
         const r = signIn(email, pw);
         if (!r.ok) return setErr(r);
         const u = db.users.find(x => x.email === email.trim().toLowerCase());
-        router.push(u && ["superadmin", "contentadmin"].includes(u.role) ? "/admin" : "/");
+        router.push(u && (["superadmin", "contentadmin"].includes(u.role) || u.staff) ? "/admin" : "/");
       }}>
         <h1 className="h2">Sign in to AI Xchange</h1>
         <Field label="Work email" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />

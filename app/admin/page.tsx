@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { useStore, isSuper as superCheck } from "@/lib/store";
 import { MembersOnly, useToast } from "@/components/ui";
 import { Companies, Individuals, People, AdminRoles } from "@/components/admin/Access";
 import { EventsAdmin, InsightsAdmin, HomeAdmin, PostsAdmin, Reports } from "@/components/admin/Content";
@@ -16,7 +16,7 @@ export default function Admin() { return <MembersOnly staff><AdminInner /></Memb
 
 function AdminInner() {
   const { db, me } = useStore();
-  const isSuper = me?.role === "superadmin";
+  const isSuper = superCheck(me);
   const groups = GROUPS.filter(g => isSuper || !g.superOnly).map(g => ({ ...g, tabs: g.tabs.filter(([k]) => isSuper || k !== "log") }));
   const [tab, setTab] = useState<Tab>(isSuper ? "companies" : "events");
   const toast = useToast();

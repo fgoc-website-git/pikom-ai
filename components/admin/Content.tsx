@@ -12,7 +12,7 @@ const downloadCsv = (name: string, rows: string[][]) => {
 };
 
 /* ---------------- Events ---------------- */
-const blankEvent = (): PEvent => ({ id: "", title: "", type: "Physical", date: "", time: "", venue: "", link: "", capacity: 100, perCompany: null, audience: "members", price: "Free for members", description: "", regClose: "", status: "Draft", materials: "", registrations: [] });
+const blankEvent = (): PEvent => ({ id: "", title: "", type: "Physical", date: "", time: "", venue: "", link: "", capacity: 100, perCompany: null, audience: "members", price: "Free for members", description: "", regClose: "", status: "Draft", materials: "", registrations: [], host: "PIKOM" });
 
 function EventForm({ init, toast, done }: { init: PEvent; toast: Toast; done: () => void }) {
   const { saveEvent } = useStore();
@@ -31,6 +31,7 @@ function EventForm({ init, toast, done }: { init: PEvent; toast: Toast; done: ()
         <Field label={e.type === "Online" ? "Seat limit (optional)" : "Capacity (seats)"} type="number" min={1} value={e.capacity ?? ""} onChange={x => set({ capacity: x.target.value ? Number(x.target.value) : null })} hint="When full, new sign-ups go to a waitlist" />
         <Field label="Max per company (optional)" type="number" min={1} value={e.perCompany ?? ""} onChange={x => set({ perCompany: x.target.value ? Number(x.target.value) : null })} />
         <label className="field">Who can register<select className="select" value={e.audience} onChange={x => set({ audience: x.target.value as "members" })}><option value="members">PIKOM members only</option><option value="all">Members and guests</option></select></label>
+        <Field label="Hosted by" value={e.host} onChange={x => set({ host: x.target.value })} hint="PIKOM or the member company running it" />
         <Field label="Price note" value={e.price} onChange={x => set({ price: x.target.value })} hint="Payment is handled outside the site" />
         <Field label="Registration closes" type="date" value={e.regClose} onChange={x => set({ regClose: x.target.value })} hint="Defaults to the event date" />
         <label className="field">Status<select className="select" value={e.status} onChange={x => set({ status: x.target.value as "Draft" })}><option>Draft</option><option>Published</option><option>Cancelled</option></select></label>

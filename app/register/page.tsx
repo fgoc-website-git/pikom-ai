@@ -83,10 +83,9 @@ export default function Register() {
         <h2 className="h3">Try these in the demo</h2>
         <ul className="small" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.9 }}>
           <li><code>new.person@forest-interactive.com</code> — whitelisted company with free seats</li>
-          <li><code>it.lead@dxc.com</code> — becomes the main account holder for DXC</li>
-          <li><code>anyone@inextlabs.com</code> — company has used all 5 seats (AX-102)</li>
+          <li><code>anyone@demo-company.com.my</code> — sample company has used all 5 seats (AX-102)</li>
           <li><code>someone@unknown-co.com</code> — not whitelisted (AX-101) → offered a guest account</li>
-          <li><code>lim.researcher@outlook.com</code> — whitelisted individual member</li>
+          <li><code>new.individual@outlook.com</code> — whitelisted individual member</li>
         </ul>
       </div>
     </div>

@@ -10,13 +10,12 @@ const NAV = [["/members", "Members"], ["/opportunities", "Opportunities"], ["/ev
 
 const PEOPLE = [
   ["", "Visitor (signed out)"],
-  ["student.amir@gmail.com", "Guest — free account"],
-  ["aina@forest-interactive.com", "Main holder — Forest Interactive"],
-  ["kumar@forest-interactive.com", "Colleague — Forest Interactive"],
-  ["daniel@inextlabs.com", "Main holder — iNextLabs (seats full)"],
-  ["farah.ai@gmail.com", "Individual member"],
-  ["content@pikom.org.my", "Content admin — PIKOM"],
-  ["admin@pikom.org.my", "Super admin — PIKOM"],
+  ["ritesh.devarajan@forest-interactive.com", "Ritesh — super admin + Forest Interactive"],
+  ["colleague@forest-interactive.com", "Colleague — Forest Interactive"],
+  ["main@demo-company.com.my", "Main holder — sample company (seats full)"],
+  ["individual.sample@gmail.com", "Individual member (sample)"],
+  ["guest.sample@gmail.com", "Guest — free account (sample)"],
+  ["content@pikom.org.my", "Content admin (sample)"],
 ];
 
 function DemoBar() {
@@ -28,7 +27,7 @@ function DemoBar() {
       <span>Demo for PIKOM review · sample data, nothing leaves this browser</span>
       <span className="row" style={{ gap: 8 }}>
         <label htmlFor="demo-as">View as</label>
-        <select id="demo-as" value={me?.email || ""} onChange={e => { const v = e.target.value; quickSignIn(v); router.push(v.endsWith("@pikom.org.my") ? "/admin" : "/"); }}>
+        <select id="demo-as" value={me?.email || ""} onChange={e => { const v = e.target.value; quickSignIn(v); router.push(v.endsWith("@pikom.org.my") || v.startsWith("ritesh.") ? "/admin" : "/"); }}>
           {people.map(([e, l]) => <option key={e} value={e}>{l}</option>)}
           {me && !people.some(([e]) => e === me.email) && <option value={me.email}>{me.name}</option>}
         </select>

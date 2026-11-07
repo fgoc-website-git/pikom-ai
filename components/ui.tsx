@@ -96,7 +96,7 @@ export function MembersOnly({ children, staff }: { children: React.ReactNode; st
       <div className="row"><Link className="btn primary" href="/signin">Sign in</Link><Link className="btn" href="/register">Join AI Xchange</Link></div>
     </div></div>
   );
-  if (staff && me.role !== "superadmin" && me.role !== "contentadmin") return <div className="wrap page-head"><ErrorBox code="AX-403" msg="This page is for PIKOM admins only." /></div>;
+  if (staff && !(["superadmin", "contentadmin"].includes(me.role) || me.staff)) return <div className="wrap page-head"><ErrorBox code="AX-403" msg="This page is for PIKOM admins only." /></div>;
   return <>{children}</>;
 }
 

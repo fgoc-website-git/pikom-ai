@@ -179,7 +179,7 @@ export function AdminRoles({ toast }: { toast: Toast }) {
   const { db, me, addStaff, removeStaff } = useStore();
   const [f, setF] = useState({ email: "", name: "" });
   const [err, setErr] = useState<{ code: string; msg: string } | null>(null);
-  const staff = db.users.filter(u => u.role === "superadmin" || u.role === "contentadmin");
+  const staff = db.users.filter(u => u.role === "superadmin" || u.role === "contentadmin" || u.staff);
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="card stack" style={{ gap: 6 }}>
@@ -195,7 +195,7 @@ export function AdminRoles({ toast }: { toast: Toast }) {
       </form>
       <div className="table-wrap"><table>
         <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Last sign-in</th><th><span style={SR}>Actions</span></th></tr></thead>
-        <tbody>{staff.map(u => <tr key={u.id}><td><b>{u.name}</b></td><td>{u.email}</td><td><span className="badge dark">{roleLabel(u.role)}</span></td><td>{u.lastSignIn || "—"}</td><td>{u.id !== me!.id && <button className="btn sm danger" onClick={() => { removeStaff(u.id); toast("Access removed"); }}>Remove access</button>}</td></tr>)}</tbody>
+        <tbody>{staff.map(u => <tr key={u.id}><td><b>{u.name}</b></td><td>{u.email}</td><td><span className="badge dark">{u.staff === "super" ? "Super admin" : u.staff === "content" ? "Content admin" : roleLabel(u.role)}</span>{u.staff && <div className="small muted">also {roleLabel(u.role).toLowerCase()}</div>}</td><td>{u.lastSignIn || "—"}</td><td>{u.id !== me!.id && <button className="btn sm danger" onClick={() => { removeStaff(u.id); toast("Access removed"); }}>Remove access</button>}</td></tr>)}</tbody>
       </table></div>
     </div>
   );

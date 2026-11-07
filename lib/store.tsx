@@ -10,8 +10,10 @@ export type Role = "superadmin" | "contentadmin" | "main" | "member" | "individu
 export const PAYING: Role[] = ["main", "member", "individual"];
 export const STAFF: Role[] = ["superadmin", "contentadmin"];
 /** Full access = paying members and PIKOM staff. Guests and visitors see listings only. */
-export const fullAccess = (u: User | null) => !!u && (PAYING.includes(u.role) || STAFF.includes(u.role));
-export const canManageContent = (u: User | null) => !!u && STAFF.includes(u.role);
+export const isSuper = (u: User | null) => !!u && (u.role === "superadmin" || u.staff === "super");
+export const isStaff = (u: User | null) => !!u && (STAFF.includes(u.role) || !!u.staff);
+export const fullAccess = (u: User | null) => !!u && (PAYING.includes(u.role) || isStaff(u));
+export const canManageContent = isStaff;
 
 export interface CompanyProfile {
   about: string; website: string; category: string; capabilities: string[]; industries: string[];
@@ -25,6 +27,8 @@ export interface Individual { email: string; name: string; pikomNo: string; whit
 export interface User {
   id: string; email: string; name: string; password: string; role: Role; orgId: string | null;
   jobTitle: string; phone: string; linkedin: string; bio: string; interests: string[]; company?: string;
+  /** PIKOM admin rights held on top of a member account (e.g. a member who also runs the site). */
+  staff?: "super" | "content";
   createdOn: string; lastSignIn?: string;
 }
 export interface Job {
@@ -41,7 +45,7 @@ export interface Registration { userId: string; at: string; status: "confirmed" 
 export interface PEvent {
   id: string; title: string; type: EventType; date: string; time: string; venue: string; link: string;
   capacity: number | null; perCompany: number | null; audience: "members" | "all"; price: string; description: string;
-  regClose: string; status: "Published" | "Draft" | "Cancelled"; materials: string; registrations: Registration[];
+  regClose: string; status: "Published" | "Draft" | "Cancelled"; materials: string; registrations: Registration[]; host: string;
 }
 export type ContentKind = "policy" | "research" | "news";
 export interface Content {
@@ -74,63 +78,57 @@ function seed(): DB {
     id, domain, name, type, pikomNo: "[PIKOM no.]", mainEmail, seatLimit: SEAT_LIMIT, status: "active", whitelistedOn: on, renewal: "2027-10-14", profile: { ...emptyProfile(), ...p },
   });
   const orgs: Org[] = [
-    org("fi", "forest-interactive.com", "Forest Interactive Sdn. Bhd.", "Ordinary Member", "aina@forest-interactive.com", { about: "Digital ecosystems and AI-enabled platforms for telecom operators across Southeast Asia and emerging markets.", website: "https://forest-interactive.com", category: "AI Platform", capabilities: ["Generative AI / LLM", "AI agents & automation", "Predictive analytics"], industries: ["Telecom", "Retail & e-commerce"], state: "Kuala Lumpur", employees: "201–500", phone: "+60 3-0000 0000", logo: "/logos/forest-interactive-sdn-bhd.png" }),
-    org("inx", "inextlabs.com", "iNextLabs (M) Sdn. Bhd.", "Ordinary Member", "daniel@inextlabs.com", { about: "Generative and agentic AI automation for enterprises.", website: "https://inextlabs.com", category: "AI Platform", capabilities: ["Generative AI / LLM", "AI agents & automation"], industries: ["Financial services"], state: "Kuala Lumpur", employees: "51–200", logo: "/logos/inextlabs-m-sdn-bhd.png" }, "2026-10-12"),
-    org("dxc", "dxc.com", "DXC Technology Malaysia", "Overseas Member", "it.lead@dxc.com", { about: "Global AI transformation services for enterprise and government clients.", category: "SI & Solutions", logo: "/logos/dxc-technology-malaysia-sdn-bhd.png" }, "2026-11-02"),
+    org("fi", "forest-interactive.com", "Forest Interactive Sdn. Bhd.", "Ordinary Member", "ritesh.devarajan@forest-interactive.com", { about: "Digital ecosystems and AI-enabled platforms for telecom operators across Southeast Asia and emerging markets.", website: "https://forest-interactive.com", category: "AI Platform", capabilities: ["Generative AI / LLM", "AI agents & automation", "Predictive analytics"], industries: ["Telecom", "Retail & e-commerce"], state: "Kuala Lumpur", employees: "201–500", logo: "/logos/forest-interactive-sdn-bhd.png" }),
+    // Fictional company used to show the 5-seat limit. Not a real member.
+    org("demo", "demo-company.com.my", "Demo Company Sdn. Bhd. (sample)", "Ordinary Member", "main@demo-company.com.my", { about: "Sample company for the demo — shows what happens when all 5 seats are used.", category: "SI & Solutions" }, "2026-10-12"),
   ];
   // Rest of the PIKOM member list, loaded by the secretariat. Their email domains still need adding.
   const catLabel = (id: string) => CATS.find(c => c.id === id)?.label || "";
-  const taken = ["forest", "inextlabs", "dxc"];
+  const taken = ["forest"];
   MEMBERS.filter(m => !taken.some(t => m.name.toLowerCase().includes(t))).forEach((m, i) => {
     orgs.push(org(`m${m.id}`, "", m.name, m.cat === "enterprise" ? "Associate Member" : "Ordinary Member", "", { about: m.tagline, category: catLabel(m.cat), capabilities: m.services, logo: m.logo }, "2026-10-01"));
   });
   const users: User[] = [
-    u("admin@pikom.org.my", "PIKOM Secretariat", "superadmin", null, "Super admin"),
-    u("content@pikom.org.my", "Nadia (PIKOM content)", "contentadmin", null, "Content admin"),
-    u("aina@forest-interactive.com", "Aina Rahman", "main", "fi", "Head of Partnerships", "+60 12-000 0001"),
-    u("kumar@forest-interactive.com", "Kumar Selvam", "member", "fi", "Product Manager", "+60 12-000 0002"),
-    u("mei@forest-interactive.com", "Tan Mei Ling", "member", "fi", "Data Scientist"),
-    u("daniel@inextlabs.com", "Daniel Wong", "main", "inx", "Chief Executive Officer", "+60 12-000 0003"),
-    u("sara@inextlabs.com", "Sara Ismail", "member", "inx", "Sales Director"),
-    u("arif@inextlabs.com", "Arif Hakim", "member", "inx", "Solutions Architect"),
-    u("priya@inextlabs.com", "Priya Nair", "member", "inx", "Marketing Lead"),
-    u("ken@inextlabs.com", "Ken Lee", "member", "inx", "ML Engineer"),
-    u("farah.ai@gmail.com", "Dr Farah Aziz", "individual", null, "Independent AI governance consultant", "", { bio: "AI policy and responsible-AI advisor." }),
-    u("student.amir@gmail.com", "Amir Hamzah", "guest", null, "Final-year student", "", { company: "Universiti Malaya" }),
+    u("ritesh.devarajan@forest-interactive.com", "Ritesh Devarajan", "main", "fi", "Assistant Manager – PMO", "", { staff: "super" }),
+    u("admin@pikom.org.my", "PIKOM Secretariat (sample)", "superadmin", null, "Super admin"),
+    u("content@pikom.org.my", "PIKOM Content Team (sample)", "contentadmin", null, "Content admin"),
+    u("colleague@forest-interactive.com", "Sample Colleague", "member", "fi", "Product Manager"),
+    u("main@demo-company.com.my", "Sample Main Holder", "main", "demo", "Managing Director"),
+    ...[1, 2, 3, 4].map(n => u(`user${n}@demo-company.com.my`, `Sample User ${n}`, "member", "demo", "Staff")),
+    u("individual.sample@gmail.com", "Sample Individual Member", "individual", null, "Independent AI consultant"),
+    u("guest.sample@gmail.com", "Sample Guest", "guest", null, "Student", "", { company: "University (sample)" }),
   ];
   const individuals: Individual[] = [
-    { email: "farah.ai@gmail.com", name: "Dr Farah Aziz", pikomNo: "[PIKOM no.]", whitelistedOn: "2026-10-18", renewal: "2027-10-17" },
-    { email: "lim.researcher@outlook.com", name: "Lim Wei Jie", pikomNo: "[PIKOM no.]", whitelistedOn: "2026-11-03", renewal: "2027-11-02" },
+    { email: "individual.sample@gmail.com", name: "Sample Individual Member", pikomNo: "[PIKOM no.]", whitelistedOn: "2026-10-18", renewal: "2027-10-17" },
+    { email: "new.individual@outlook.com", name: "Sample Individual (not registered)", pikomNo: "[PIKOM no.]", whitelistedOn: "2026-11-03", renewal: "2027-11-02" },
   ];
   const job = (title: string, orgId: string, company: string, category: string, location: string, mode: string, experience: string, postedOn: string, salary: string): Job => ({
-    id: uid(), title, orgId, company, category, type: "Full-time", location, mode, experience, salary, description: "Sample listing for the demo.", linkedinUrl: "", applyEmail: "careers@example.com", postedOn, postedBy: "",
+    id: uid(), title, orgId, company, category, type: "Full-time", location, mode, experience, salary, description: "Sample listing for the demo.", linkedinUrl: "", applyEmail: "careers@example.com", postedOn, postedBy: "ritesh.devarajan@forest-interactive.com",
   });
   const jobs: Job[] = [
-    job("Senior ML Engineer (LLM)", "inx", "iNextLabs", "Engineering", "Kuala Lumpur", "Hybrid", "Senior / Lead", "2026-11-04", "RM 14,000 – 20,000"),
-    job("AI Solutions Architect", "dxc", "DXC Technology", "Engineering", "Cyberjaya", "On-site", "Senior / Lead", "2026-11-02", "RM 15,000 – 22,000"),
-    job("Data Scientist, Telco Analytics", "fi", "Forest Interactive", "Data & Analytics", "Kuala Lumpur", "Hybrid", "Mid-level", "2026-10-30", "RM 8,000 – 12,000"),
-    job("AI Graduate Programme 2027", "fi", "Forest Interactive", "Graduate / Internship", "Kuala Lumpur", "On-site", "Graduate / Intern", "2026-10-25", "RM 4,000 – 5,000"),
+    job("Senior ML Engineer (LLM) — sample", "fi", "Forest Interactive", "Engineering", "Kuala Lumpur", "Hybrid", "Senior / Lead", "2026-11-04", "RM 14,000 – 20,000"),
+    job("AI Solutions Architect — sample", "fi", "Forest Interactive", "Engineering", "Kuala Lumpur", "On-site", "Senior / Lead", "2026-11-02", "RM 15,000 – 22,000"),
+    job("Data Scientist, Telco Analytics — sample", "fi", "Forest Interactive", "Data & Analytics", "Kuala Lumpur", "Hybrid", "Mid-level", "2026-10-30", "RM 8,000 – 12,000"),
+    job("AI Graduate Programme 2027 — sample", "fi", "Forest Interactive", "Graduate / Internship", "Kuala Lumpur", "On-site", "Graduate / Intern", "2026-10-25", "RM 4,000 – 5,000"),
   ];
   const rfp = (title: string, buyer: string, orgId: string | null, sector: string, type: string, budget: string, closes: string, description: string): Rfp => ({
-    id: uid(), title, buyer, orgId, sector, type, budget, closes, description, contactEmail: "procurement@example.com", status: "Open", postedOn: "2026-11-01", postedBy: "",
+    id: uid(), title, buyer, orgId, sector, type, budget, closes, description, contactEmail: "ritesh.devarajan@forest-interactive.com", status: "Open", postedOn: "2026-11-01", postedBy: "ritesh.devarajan@forest-interactive.com",
   });
   const rfps: Rfp[] = [
-    rfp("AI fraud detection for a digital bank", "[Member bank — name shown to members]", null, "Financial services", "Solution required", "RM 500K – 1M", plus(21), "Real-time transaction fraud scoring with explainability for compliance. POC in 8 weeks."),
-    rfp("Predictive maintenance for semiconductor lines", "[Member manufacturer]", null, "Manufacturing / E&E", "Solution required", "RM 600K – 1.5M", plus(30), "Sensor data from 40 lines; on-premise deployment required."),
-    rfp("Bahasa + English GenAI customer service agent", "Forest Interactive", "fi", "Retail & e-commerce", "POC first", "RM 150K – 350K", plus(14), "Chat and voice agent in BM and English, integrated with our CRM."),
-    rfp("AI literacy programme for 800 government staff", "[Government agency]", null, "Public sector", "Training programme", "RM 200K – 500K", plus(40), "Blended programme, HRD Corp claimable preferred."),
+    rfp("AI fraud detection for a digital bank — sample", "Forest Interactive", "fi", "Financial services", "Solution required", "RM 500K – 1M", plus(21), "Sample RFP for the demo: real-time transaction fraud scoring with explainability for compliance. POC in 8 weeks."),
+    rfp("Predictive maintenance for semiconductor lines — sample", "Forest Interactive", "fi", "Manufacturing / E&E", "Solution required", "RM 600K – 1.5M", plus(30), "Sample RFP for the demo: sensor data from 40 lines; on-premise deployment required."),
+    rfp("Bahasa + English GenAI customer service agent — sample", "Forest Interactive", "fi", "Retail & e-commerce", "POC first", "RM 150K – 350K", plus(14), "Sample RFP for the demo: chat and voice agent in BM and English, integrated with a CRM."),
   ];
   const ev = (title: string, type: EventType, date: string, time: string, venue: string, capacity: number | null, audience: "members" | "all", price: string, description: string, perCompany: number | null = null): PEvent => ({
-    id: uid(), title, type, date, time, venue, link: type === "Physical" ? "" : "https://meet.example.com/ax-demo", capacity, perCompany, audience, price, description, regClose: date, status: "Published", materials: "", registrations: [],
+    id: uid(), title, type, date, time, venue, link: type === "Physical" ? "" : "https://meet.example.com/ax-demo", capacity, perCompany, audience, price, description, regClose: date, status: "Published", materials: "", registrations: [], host: "Forest Interactive",
   });
   const events: PEvent[] = [
-    ev("AI Xchange Members Meetup — November", "Physical", plus(13), "18:30 – 21:00", "PIKOM HQ, Kuala Lumpur", 4, "members", "Free for members", "Demos, deal-sharing and a policy update. Light dinner provided.", 2),
-    ev("AI Governance Bill — member briefing", "Online", plus(8), "10:00 – 11:30", "Online (link sent after registering)", null, "members", "Free for members", "What the proposed risk tiers mean for your products and clients."),
-    ev("PIKOM LEAD 2026", "Hybrid", plus(35), "09:00 – 17:00", "Kuala Lumpur Convention Centre + livestream", 400, "all", "Member delegate pass · public rate applies", "C-suite summit on AI, talent and the digital economy."),
-    { ...ev("AI Xchange Meetup — October", "Physical", "2026-10-16", "18:30 – 21:00", "PIKOM HQ, Kuala Lumpur", 80, "members", "Free for members", "Agentic AI demos from three members."), materials: "Slides and recording available to members" },
+    ev("AI Xchange Members Meetup — sample", "Physical", plus(13), "18:30 – 21:00", "Forest Interactive, Megan Avenue II, Kuala Lumpur", 4, "members", "Free for members", "Sample event: demos, deal-sharing and a policy update. Only 4 seats so you can try the waitlist.", 2),
+    ev("AI Governance Bill briefing — sample", "Online", plus(8), "10:00 – 11:30", "Online (link sent after registering)", null, "members", "Free for members", "Sample event: what the proposed risk tiers mean for your products and clients."),
+    ev("AI in Telecom open session — sample", "Hybrid", plus(35), "09:00 – 12:00", "Forest Interactive, Kuala Lumpur + livestream", 60, "all", "Free", "Sample event open to members and guests."),
+    { ...ev("AI Xchange Meetup — October (sample)", "Physical", "2026-10-16", "18:30 – 21:00", "Forest Interactive, Kuala Lumpur", 80, "members", "Free for members", "Sample past event."), materials: "Slides and recording available to members" },
   ];
-  const meetup = events[0];
-  meetup.registrations = [users[2], users[5], users[10]].map(x => ({ userId: x.id, at: "2026-11-04 09:00", status: "confirmed" as const }));
+  events[0].registrations = [users[3], users[4], users[9]].map(x => ({ userId: x.id, at: "2026-11-04 09:00", status: "confirmed" as const }));
   const ct = (kind: ContentKind, title: string, summary: string, source: string, date: string, extra: Partial<Content> = {}): Content => ({
     id: uid(), kind, title, summary, body: "", source, url: "", file: "", date, policyStatus: "", featured: false, published: true, ...extra,
   });
@@ -143,15 +141,15 @@ function seed(): DB {
     ct("news", "National AI Action Plan 2026–2030 published", "28 initiatives across 14 impact engines.", "AI Malaysia", "2026-07-01", { url: "https://www.ai.gov.my" }),
     ct("news", "Stanford AI Index 2026", "Global adoption and investment trends.", "Stanford HAI", "2026-04-15", { url: "https://hai.stanford.edu" }),
   ];
-  const spotlight = ["fi", "inx", orgs.find(o => o.name.startsWith("AKATI"))?.id || "", orgs.find(o => o.name.startsWith("PEOPLElogy"))?.id || ""].filter(Boolean);
+  const spotlight = ["fi", ...["AKATI", "PEOPLElogy", "Straits"].map(n => orgs.find(o => o.name.startsWith(n))?.id || "")].filter(Boolean);
   return {
     orgs, individuals, users, jobs, rfps, events, content, spotlight,
-    announcements: [{ id: uid(), text: "Members Meetup — November: limited seats, register now.", link: "/events", active: true }],
-    log: [{ at: "2026-11-02 10:12", who: "PIKOM Secretariat", what: "Whitelisted dxc.com for DXC Technology Malaysia" }],
+    announcements: [{ id: uid(), text: "This is a demo of AI Xchange for PIKOM review — all events, jobs and RFPs are samples.", link: "/membership", active: true }],
+    log: [{ at: "2026-11-02 10:12", who: "Ritesh Devarajan", what: "Whitelisted forest-interactive.com for Forest Interactive Sdn. Bhd." }],
   };
 }
 
-const KEY = "ax-demo-v2";
+const KEY = "ax-demo-v3";
 const SESSION = "ax-demo-session";
 export type Result = { ok: true; msg?: string } | { ok: false; code: string; msg: string };
 type Check = (Result & { kind?: "org" | "individual" | "guest"; org?: Org });

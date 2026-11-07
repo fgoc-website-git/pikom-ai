@@ -29,6 +29,7 @@ export function EventCard({ e }: { e: PEvent }) {
       <h2 className="h3">{e.title}</h2>
       <p className="small muted" style={{ fontSize: 14 }}>{e.description}</p>
       <dl className="kv" style={{ gridTemplateColumns: "90px 1fr", fontSize: 13 }}>
+        <dt>Host</dt><dd>{e.host || "PIKOM"}</dd>
         <dt>Where</dt><dd>{e.type === "Online" ? "Online" : e.venue}</dd>
         <dt>Price</dt><dd>{e.price}</dd>
         {!past && <><dt>Seats</dt><dd>{left == null ? "No limit" : left > 0 ? `${left} of ${e.capacity} left` : `Full · ${waitlist} on waitlist`}{e.perCompany ? ` · max ${e.perCompany} per company` : ""}</dd></>}
