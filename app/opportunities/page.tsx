@@ -5,6 +5,7 @@ import { useStore, PAYING, STAFF } from "@/lib/store";
 import { JOB_CATEGORIES, WORK_MODES, EXPERIENCE, JOB_TYPES, STATES, INDUSTRIES_SERVED } from "@/lib/options";
 import { slugify } from "@/lib/directory";
 import { Field, Area, SelectOther, ErrorBox, Avatar, Locked, useToast, ago, fmtDate } from "@/components/ui";
+import { SearchIcon } from "@/components/PageHero";
 
 const RFP_TYPES = ["Solution required", "POC first", "Training programme", "Managed service", "Co-development", "Other"];
 const blankJob = { title: "", category: "", type: "Full-time", location: "Kuala Lumpur", mode: "", experience: "", salary: "", description: "", linkedinUrl: "", applyEmail: "" };
@@ -15,10 +16,10 @@ export default function Opportunities() {
   useEffect(() => { const p = new URLSearchParams(window.location.search); if (p.get("tab") === "jobs") setTab("jobs"); }, []);
   return (
     <>
-      <section className="hero"><div className="wrap stack" style={{ padding: "44px 24px 0", gap: 10 }}>
+      <section className="page-hero"><div className="wrap" style={{ paddingBottom: 0 }}>
         <h1 className="h1">Opportunities</h1>
-        <p className="lead">Business requirements (RFPs) and jobs from PIKOM member companies.</p>
-        <div className="tabs" role="tablist" style={{ borderBottom: 0, marginBottom: 0, marginTop: 12 }}>
+        <p>Business requirements (RFPs) and jobs from PIKOM member companies.</p>
+        <div className="tabs" role="tablist" style={{ borderBottom: 0, marginBottom: 0, marginTop: 16 }}>
           {([["business", "Business (RFPs)"], ["jobs", "Jobs"]] as const).map(([k, l]) => (
             <button key={k} role="tab" aria-selected={tab === k} className="tab" style={{ color: tab === k ? "#fff" : "#CBD5E1", borderColor: tab === k ? "#fff" : "transparent" }} onClick={() => { setTab(k); history.replaceState(null, "", k === "jobs" ? "?tab=jobs" : "?"); }}>{l}</button>))}
         </div>
@@ -38,7 +39,7 @@ function Business() {
   const canPost = !!me && (PAYING.includes(me.role) || STAFF.includes(me.role));
   const list = db.rfps.filter(r => !r.hidden).sort((a, b) => Number(a.status !== "Open") - Number(b.status !== "Open") || a.closes.localeCompare(b.closes));
   return (
-    <section className="wrap section stack" style={{ gap: 14 }}>
+    <section className="wrap stack" style={{ gap: 14, paddingTop: 28 }}>
       <div className="row between">
         <p className="muted">Buyers looking for AI vendors and partners. Responses go straight to the buyer.</p>
         {canPost && <button className="btn primary" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post an RFP"}</button>}
@@ -48,7 +49,7 @@ function Business() {
         <form className="card hl stack" style={{ gap: 16 }} onSubmit={e => { e.preventDefault(); setErr("");
           if (!f.sector || !f.type) return setErr("Please choose a sector and type."); if (!f.contactEmail) return setErr("Add a contact email for responses.");
           postRfp(f); setF(blankRfp); setPosting(false); toast.show("RFP published"); }}>
-          <h2 className="h3" style={{ fontSize: 22 }}>Post an RFP</h2>
+          <h2 className="h2" style={{ fontSize: 20 }}>Post an RFP</h2>
           <div className="form-grid">
             <Field label="What do you need?" required value={f.title} onChange={e => setF({ ...f, title: e.target.value })} />
             <SelectOther label="Sector" options={INDUSTRIES_SERVED} value={f.sector} onChange={v => setF({ ...f, sector: v })} />
@@ -108,7 +109,7 @@ function Jobs() {
   const tog = (arr: string[], v: string, set: (a: string[]) => void) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
   return (
     <>
-      <section className="wrap section">
+      <section className="wrap" style={{ paddingTop: 28 }}>
         <div className="row between" style={{ marginBottom: 14 }}>
           <p className="muted">Roles at verified PIKOM member companies. Apply on the employer's LinkedIn post or by email.</p>
           {canPost && <button className="btn accent" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post a job"}</button>}
@@ -122,7 +123,7 @@ function Jobs() {
             if (!f.linkedinUrl && !f.applyEmail) return setErr("Add a LinkedIn job link or an email for applications.");
             postJob(f); setF(blankJob); setPosting(false); toast.show("Job published — live for 30 days");
           }}>
-            <div className="row between"><h2 className="h3" style={{ fontSize: 22 }}>Post a job</h2><span className="badge green">Posting as {myOrg?.name || me!.name}</span></div>
+            <div className="row between"><h2 className="h2" style={{ fontSize: 20 }}>Post a job</h2><span className="badge green">Posting as {myOrg?.name || me!.name}</span></div>
             <div className="form-grid">
               <Field label="Job title" required placeholder="e.g. Machine Learning Engineer" value={f.title} onChange={e => setF({ ...f, title: e.target.value })} />
               <SelectOther label="Category" options={JOB_CATEGORIES} value={f.category} onChange={v => setF({ ...f, category: v })} />
@@ -140,15 +141,15 @@ function Jobs() {
             <div className="row"><button className="btn primary">Publish (live 30 days)</button><button type="button" className="btn" onClick={() => setPosting(false)}>Cancel</button></div>
           </form>)}
       </section>
-      <section className="wrap" style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start" }}>
-        <aside className="card stack" style={{ flex: "1 1 240px", gap: 18 }}>
-          <label className="field">Keyword<input className="input" placeholder="LLM, MLOps, vision…" value={q} onChange={e => setQ(e.target.value)} /></label>
+      <section className="wrap" style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start", marginTop: 16 }}>
+        <aside className="card stack" style={{ flex: "0 1 240px", gap: 18 }}>
+          <label className="search" style={{ flex: "none", minWidth: 0 }}><span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden" }}>Keyword</span><SearchIcon /><input className="input" placeholder="Keyword" value={q} onChange={e => setQ(e.target.value)} /></label>
           <fieldset><legend>Work mode</legend><div className="stack" style={{ gap: 6 }}>{WORK_MODES.map(m => <label key={m} className="row" style={{ gap: 8 }}><input type="checkbox" checked={modes.includes(m)} onChange={() => tog(modes, m, setModes)} />{m}</label>)}</div></fieldset>
           <fieldset><legend>Experience</legend><div className="stack" style={{ gap: 6 }}>{EXPERIENCE.map(m => <label key={m} className="row" style={{ gap: 8 }}><input type="checkbox" checked={exp.includes(m)} onChange={() => tog(exp, m, setExp)} />{m}</label>)}</div></fieldset>
         </aside>
         <div className="stack" style={{ flex: "999 1 560px", minWidth: 0, gap: 14 }}>
           <div className="chips" role="group" aria-label="Category">{["All", ...JOB_CATEGORIES].map(c => <button key={c} className={`chip${cat === c ? " on" : ""}`} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>
-          <span className="small muted">{shown.length} role{shown.length === 1 ? "" : "s"}</span>
+          <span className="count">{shown.length} role{shown.length === 1 ? "" : "s"}</span>
           {shown.length === 0 && <div className="empty">No jobs match these filters.</div>}
           {shown.map(j => {
             const org = db.orgs.find(o => o.id === j.orgId);

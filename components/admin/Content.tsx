@@ -209,7 +209,7 @@ export function Reports() {
   ];
   return (
     <div className="stack" style={{ gap: 20 }}>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))" }}>{kpis.map(([l, n]) => <div key={l as string} className="card tight stack" style={{ gap: 2 }}><span className="small muted">{l}</span><span style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 28 }}>{n}</span></div>)}</div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))" }}>{kpis.map(([l, n]) => <div key={l as string} className="card tight stack" style={{ gap: 2 }}><span className="small muted">{l}</span><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 28 }}>{n}</span></div>)}</div>
       <div className="grid2" style={{ alignItems: "start" }}>
         <div className="card stack" style={{ gap: 8 }}><h2 className="h3">Accounts by type</h2>{byRole.map(([l, n]) => <div key={l} className="row between" style={{ borderTop: "1px solid var(--soft)", paddingTop: 8 }}><span>{l}</span><b>{n}</b></div>)}</div>
         <div className="card stack" style={{ gap: 8 }}><h2 className="h3">Renewals in the next 90 days</h2>{due.length === 0 ? <p className="muted">None.</p> : due.map(d => <div key={d.name} className="row between" style={{ borderTop: "1px solid var(--soft)", paddingTop: 8 }}><span>{d.name} <span className="small muted">{d.kind}</span></span><b>{fmtDate(d.renewal)}</b></div>)}</div>

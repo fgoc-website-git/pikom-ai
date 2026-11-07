@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { companies } from "@/lib/directory";
 import { COMPANY_CATEGORIES, CAPABILITIES } from "@/lib/options";
 import { Avatar, Locked } from "@/components/ui";
-import { PageHero } from "@/components/PageHero";
+import { PageHero, SearchIcon } from "@/components/PageHero";
 
 export default function Members() {
   const { db, full } = useStore();
@@ -21,16 +21,16 @@ export default function Members() {
   return (
     <>
       <PageHero title="Members" lead="Every PIKOM member company on AI Xchange. Companies appear here as soon as the secretariat whitelists them." />
-      <section className="wrap" style={{ paddingTop: 24 }}>
+      <section className="wrap" style={{ paddingTop: 28 }}>
         {!full && <div style={{ marginBottom: 16 }}><Locked what="company details, people and contact information" /></div>}
-        <div className="card row" style={{ gap: 12, marginBottom: 16 }}>
-          <label className="field" style={{ flex: "2 1 260px" }}>Search<input className="input" placeholder="Company, capability or service" value={q} onChange={e => setQ(e.target.value)} /></label>
-          {full && <label className="field" style={{ flex: "1 1 200px" }}>Capability<select className="select" value={cap} onChange={e => setCap(e.target.value)}><option value="">Any</option>{CAPABILITIES.filter(c => c !== "Other").map(c => <option key={c}>{c}</option>)}</select></label>}
+        <div className="toolbar">
+          <label className="search"><span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden" }}>Search members</span><SearchIcon /><input className="input" placeholder="Search company or capability" value={q} onChange={e => setQ(e.target.value)} /></label>
+          {full && <select className="select" aria-label="Capability" value={cap} onChange={e => setCap(e.target.value)}><option value="">All capabilities</option>{CAPABILITIES.filter(c => c !== "Other").map(c => <option key={c}>{c}</option>)}</select>}
         </div>
-        <div className="chips" role="group" aria-label="Category" style={{ marginBottom: 12 }}>
+        <div className="chips" role="group" aria-label="Category" style={{ marginBottom: 16 }}>
           {["All", ...COMPANY_CATEGORIES].map(c => <button key={c} className={`chip${cat === c ? " on" : ""}`} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
         </div>
-        <p className="small muted" style={{ marginBottom: 12 }}>{list.length} member compan{list.length === 1 ? "y" : "ies"}</p>
+        <p className="count" style={{ marginBottom: 12 }}>{list.length} member compan{list.length === 1 ? "y" : "ies"}</p>
         <div className="grid">
           {list.map(c => (
             <Link key={c.org.id} href={`/members/${c.slug}`} className="card stack" style={{ gap: 10, color: "var(--ink)" }}>

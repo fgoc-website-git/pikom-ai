@@ -21,7 +21,7 @@ export default function Register() {
     <div className="wrap page-head" style={{ maxWidth: 720 }}>
       <div className="stack" style={{ gap: 6, marginBottom: 20 }}>
         <span className="eyebrow">Join AI Xchange</span>
-        <h1 className="h1" style={{ fontSize: 34 }}>Create your account</h1>
+        <h1 className="h1">Create your account</h1>
         <p className="muted">PIKOM members: use the email PIKOM has on record (your company email, or your personal email if you're an individual member) to get full access. Everyone else can create a free guest account.</p>
       </div>
 

@@ -13,7 +13,7 @@ export default function Insights() {
   const list = db.content.filter(c => c.kind === tab && c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date));
   return (<>
     <PageHero title="Insights" lead="AI policy and governance updates, PIKOM research and industry news — open to everyone." />
-    <section className="wrap section">
+    <section className="wrap" style={{ paddingTop: 24 }}>
       <div className="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} role="tab" className="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
       {list.length === 0 ? <div className="empty">Nothing published here yet.</div> : (
         <div className="grid2">{list.map(c => (

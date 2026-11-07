@@ -24,7 +24,7 @@ function AdminInner() {
     <div className="wrap page-head">
       <div className="stack" style={{ gap: 4, marginBottom: 20 }}>
         <span className="eyebrow">PIKOM secretariat</span>
-        <h1 className="h1" style={{ fontSize: 34 }}>{isSuper ? "Super admin" : "Content admin"}</h1>
+        <h1 className="h1">{isSuper ? "Super admin" : "Content admin"}</h1>
         <p className="muted">{isSuper ? "Manage who can access AI Xchange, and everything published on it." : "Manage events, insights and policy, home page content and member posts."}</p>
       </div>
       <div className="side-layout">

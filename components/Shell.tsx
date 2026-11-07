@@ -50,8 +50,8 @@ export function Header() {
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">AX</span>
           <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
-            <span style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 17 }}>AI Xchange Malaysia</span>
-            <span className="small muted">A PIKOM chapter</span>
+            <span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 16 }}>AI Xchange Malaysia</span>
+            <span style={{ fontSize: 12, color: "var(--mut)" }}>A PIKOM chapter</span>
           </span>
         </Link>
         <button className="btn sm menu-btn" aria-expanded={open} aria-controls="mainnav" onClick={() => setOpen(!open)}>Menu</button>
@@ -77,8 +77,8 @@ export function Header() {
           </div>
         )}
       </div></header>
-      {ann && <div style={{ background: "var(--orange-bg)", borderBottom: "1px solid #FED7AA", fontSize: 14 }}><div className="wrap" style={{ padding: "10px 24px" }}><b>Announcement:</b> {ann.text} {ann.link && <Link href={ann.link}>Find out more</Link>}</div></div>}
-      {me?.role === "guest" && <div style={{ background: "var(--blue-bg)", borderBottom: "1px solid #BFDBFE", fontSize: 14 }}><div className="wrap" style={{ padding: "10px 24px" }}>You're using a free guest account: you can browse listings, policy and insights. <Link href="/membership">Become a PIKOM member</Link> to see full details, apply and connect.</div></div>}
+      {ann && <div style={{ background: "var(--orange-bg)", borderBottom: "1px solid #FED7AA", fontSize: 14 }}><div className="wrap" style={{ paddingTop: 9, paddingBottom: 9 }}><b>Announcement:</b> {ann.text} {ann.link && <Link href={ann.link}>Find out more</Link>}</div></div>}
+      {me?.role === "guest" && <div style={{ background: "var(--blue-bg)", borderBottom: "1px solid #BFDBFE", fontSize: 14 }}><div className="wrap" style={{ paddingTop: 9, paddingBottom: 9 }}>You're using a free guest account: you can browse listings, policy and insights. <Link href="/membership">Become a PIKOM member</Link> to see full details, apply and connect.</div></div>}
     </>
   );
 }
@@ -87,7 +87,7 @@ export function Footer() {
   return (
     <footer className="site-foot"><div className="wrap">
       <div className="stack" style={{ maxWidth: 380, gap: 8 }}>
-        <span style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 17, color: "#fff" }}>AI Xchange Malaysia</span>
+        <span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 17, color: "#fff" }}>AI Xchange Malaysia</span>
         <span>An information and networking platform for members of PIKOM, The National Tech Association of Malaysia.</span>
       </div>
       <div className="stack" style={{ gap: 8 }}>
@@ -102,6 +102,6 @@ export function Footer() {
         <Link href="/terms">Terms of use</Link>
         <Link href="/membership#contact">Contact the secretariat</Link>
       </div>
-    </div></footer>
+    </div><div className="foot-bottom"><div className="wrap">© PIKOM — The National Tech Association of Malaysia. AI Xchange is a PIKOM chapter.</div></div></footer>
   );
 }

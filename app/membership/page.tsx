@@ -26,7 +26,7 @@ export default function Membership() {
     <>
       <section className="wrap stack" style={{ padding: "48px 24px 0", gap: 12, alignItems: "center", textAlign: "center" }}>
         <span className="eyebrow">PIKOM membership</span>
-        <h1 className="h1" style={{ maxWidth: 820 }}>One PIKOM membership. The whole AI Xchange network.</h1>
+        <h1 className="display" style={{ maxWidth: 760, fontSize: 38 }}>One PIKOM membership. The whole AI Xchange network.</h1>
         <p className="muted" style={{ fontSize: 17, maxWidth: 700 }}>AI Xchange is included with PIKOM membership. You join PIKOM through the secretariat — once you're a member, we whitelist your company email domain and up to 5 colleagues can sign in.</p>
         <div className="row" style={{ justifyContent: "center" }}><a className="btn accent" href="#contact">Join PIKOM</a>{!me && <Link className="btn" href="/register">Already a member? Activate access</Link>}</div>
       </section>
@@ -36,9 +36,9 @@ export default function Membership() {
           {TIERS.map(t => (
             <div key={t.name} className={`card stack${t.hl ? " hl" : ""}`} style={{ gap: 8 }}>
               {t.hl && <span className="badge dark" style={{ alignSelf: "flex-start", background: "var(--blue)" }}>Most AI companies</span>}
-              <h2 className="h3" style={{ fontSize: 22 }}>{t.name}</h2>
+              <h2 className="h2" style={{ fontSize: 19 }}>{t.name}</h2>
               <span className="small muted" style={{ fontSize: 14 }}>{t.who}</span>
-              <div className="row" style={{ gap: 6, alignItems: "baseline" }}><span style={{ fontFamily: "Manrope", fontSize: 30, fontWeight: 800 }}>{t.annual}</span><span className="muted">/ year</span></div>
+              <div className="row" style={{ gap: 6, alignItems: "baseline" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 28, fontWeight: 800 }}>{t.annual}</span><span className="muted">/ year</span></div>
               <span className="small muted">+ {t.entry} one-time entrance fee</span>
               <ul style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.9 }}>{t.items.map(i => <li key={i}>{i}</li>)}</ul>
               <a className={`btn${t.hl ? " accent" : ""}`} style={{ marginTop: "auto" }} href="#contact">Enquire with PIKOM</a>
