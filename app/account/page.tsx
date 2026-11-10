@@ -182,10 +182,10 @@ function PasswordTab() {
   const [f, setF] = useState({ cur: "", n1: "", n2: "" });
   const [res, setRes] = useState<{ ok: boolean; code?: string; msg?: string } | null>(null);
   return (
-    <form className="card stack" style={{ gap: 16, maxWidth: 480 }} onSubmit={e => {
+    <form className="card stack" style={{ gap: 16, maxWidth: 480 }} onSubmit={async e => {
       e.preventDefault();
       if (f.n1 !== f.n2) return setRes({ ok: false, code: "AX-108", msg: "The new passwords don't match." });
-      const r = changePassword(f.cur, f.n1); setRes(r); if (r.ok) setF({ cur: "", n1: "", n2: "" });
+      const r = await changePassword(f.cur, f.n1); setRes(r); if (r.ok) setF({ cur: "", n1: "", n2: "" });
     }}>
       <Field label="Current password" type="password" autoComplete="current-password" required value={f.cur} onChange={e => setF({ ...f, cur: e.target.value })} />
       <Field label="New password" type="password" autoComplete="new-password" required hint="At least 8 characters" value={f.n1} onChange={e => setF({ ...f, n1: e.target.value })} />

@@ -23,7 +23,7 @@ export default function Insights() {
             <p className="muted" style={{ fontSize: 15 }}>{c.summary}</p>
             {c.body && <p style={{ fontSize: 14 }}>{c.body}</p>}
             <div className="row" style={{ marginTop: "auto" }}>
-              {c.file && <button className="btn sm" onClick={() => alert("Demo: the PDF would download here.")}>Download PDF</button>}
+              {c.file && <button className="btn sm" onClick={() => alert("PDF downloads switch on once file storage is added.")}>Download PDF</button>}
               {c.url && <a className="btn sm" href={c.url} target="_blank" rel="noreferrer">Read source ↗</a>}
             </div>
           </article>))}</div>)}

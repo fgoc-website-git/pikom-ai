@@ -8,44 +8,14 @@ import { Avatar } from "./ui";
 
 const NAV = [["/members", "Members"], ["/opportunities", "Opportunities"], ["/events", "Events"], ["/insights", "Insights"]] as const;
 
-const PEOPLE = [
-  ["", "Visitor (signed out)"],
-  ["ritesh.devarajan@forest-interactive.com", "Ritesh — super admin + Forest Interactive"],
-  ["colleague@forest-interactive.com", "Colleague — Forest Interactive"],
-  ["main@demo-company.com.my", "Main holder — sample company (seats full)"],
-  ["individual.sample@gmail.com", "Individual member (sample)"],
-  ["guest.sample@gmail.com", "Guest — free account (sample)"],
-  ["content@pikom.org.my", "Content admin (sample)"],
-];
-
-function DemoBar() {
-  const { db, me, quickSignIn, reset } = useStore();
-  const router = useRouter();
-  const people = PEOPLE.filter(([e]) => !e || db.users.some(u => u.email === e));
-  return (
-    <div className="demo-bar"><div className="wrap">
-      <span>Demo for PIKOM review · sample data, nothing leaves this browser</span>
-      <span className="row" style={{ gap: 8 }}>
-        <label htmlFor="demo-as">View as</label>
-        <select id="demo-as" value={me?.email || ""} onChange={e => { const v = e.target.value; quickSignIn(v); router.push(v.endsWith("@pikom.org.my") || v.startsWith("ritesh.") ? "/admin" : "/"); }}>
-          {people.map(([e, l]) => <option key={e} value={e}>{l}</option>)}
-          {me && !people.some(([e]) => e === me.email) && <option value={me.email}>{me.name}</option>}
-        </select>
-        <button onClick={() => { if (confirm("Reset all demo data?")) { reset(); router.push("/"); } }}>Reset demo</button>
-      </span>
-    </div></div>
-  );
-}
-
 export function Header() {
-  const { me, myOrg, signOut, db } = useStore();
+  const { me, myOrg, signOut, db, offline } = useStore();
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ann = db.announcements.find(a => a.active);
   return (
     <>
-      <DemoBar />
       <header className="site-head"><div className="wrap">
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">AX</span>
@@ -68,7 +38,7 @@ export function Header() {
                 <span className="small muted">{myOrg ? shortName(myOrg.name) : roleLabel(me.role)}</span>
               </span>
             </Link>
-            <button className="btn sm" onClick={() => { signOut(); router.push("/"); }}>Sign out</button>
+            <button className="btn sm" onClick={async () => { await signOut(); router.push("/"); }}>Sign out</button>
           </div>
         ) : (
           <div className="row" style={{ gap: 8 }}>
@@ -77,6 +47,7 @@ export function Header() {
           </div>
         )}
       </div></header>
+      {offline && <div style={{ background: "#FEF2F2", borderBottom: "1px solid #FECACA", fontSize: 14 }}><div className="wrap" style={{ paddingTop: 9, paddingBottom: 9 }}>We can't reach the server right now ({offline}). Changes won't be saved until it's back.</div></div>}
       {ann && <div style={{ background: "var(--orange-bg)", borderBottom: "1px solid #FED7AA", fontSize: 14 }}><div className="wrap" style={{ paddingTop: 9, paddingBottom: 9 }}><b>Announcement:</b> {ann.text} {ann.link && <Link href={ann.link}>Find out more</Link>}</div></div>}
       {me?.role === "guest" && <div style={{ background: "var(--blue-bg)", borderBottom: "1px solid #BFDBFE", fontSize: 14 }}><div className="wrap" style={{ paddingTop: 9, paddingBottom: 9 }}>You're using a free guest account: you can browse listings, policy and insights. <Link href="/membership">Become a PIKOM member</Link> to see full details, apply and connect.</div></div>}
     </>

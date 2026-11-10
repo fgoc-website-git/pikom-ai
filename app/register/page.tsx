@@ -15,6 +15,7 @@ export default function Register() {
   const [found, setFound] = useState<{ kind: Kind; org?: Org } | null>(null);
   const [err, setErr] = useState<{ code: string; msg: string } | null>(null);
   const [f, setF] = useState({ name: "", jobTitle: "", company: "", pw: "", pw2: "", consent: false });
+  const [busy, setBusy] = useState(false);
   const guestable = err && (err.code === ERR.NOT_WHITELISTED || err.code === ERR.PUBLIC_EMAIL);
 
   return (
@@ -26,9 +27,9 @@ export default function Register() {
       </div>
 
       {step === 1 && (
-        <form className="card stack" style={{ gap: 16 }} onSubmit={e => {
-          e.preventDefault(); setErr(null);
-          const r = checkEmail(email);
+        <form className="card stack" style={{ gap: 16 }} onSubmit={async e => {
+          e.preventDefault(); setErr(null); setBusy(true);
+          const r = await checkEmail(email); setBusy(false);
           if (!r.ok) return setErr(r);
           setFound({ kind: r.kind as Kind, org: r.org }); setStep(2);
         }}>
@@ -42,15 +43,17 @@ export default function Register() {
                 {err.code === ERR.SEATS_FULL && <span className="small">Main account holders free a seat under <b>My account → Team seats</b>.</span>}
               </div>
             </ErrorBox>)}
-          <button className="btn primary">Continue</button>
+          <button className="btn primary" disabled={busy}>{busy ? "Checking…" : "Continue"}</button>
           <p className="small muted">Already have an account? <Link href="/signin">Sign in</Link></p>
         </form>)}
 
       {step === 2 && found && (
-        <form className="card stack" style={{ gap: 16 }} onSubmit={e => {
+        <form className="card stack" style={{ gap: 16 }} onSubmit={async e => {
           e.preventDefault(); setErr(null);
           if (f.pw !== f.pw2) return setErr({ code: "AX-108", msg: "The two passwords don't match." });
-          const r = register({ email, name: f.name, password: f.pw, jobTitle: f.jobTitle, consent: f.consent, asGuest: found.kind === "guest", company: f.company });
+          setBusy(true);
+          const r = await register({ email, name: f.name, password: f.pw, jobTitle: f.jobTitle, consent: f.consent, asGuest: found.kind === "guest", company: f.company });
+          setBusy(false);
           if (!r.ok) return setErr(r);
           router.push("/account?welcome=1");
         }}>
@@ -75,14 +78,13 @@ export default function Register() {
             <span>I agree to the <Link href="/privacy" target="_blank">privacy notice (PDPA 2010)</Link> and <Link href="/terms" target="_blank">terms of use</Link>.{found.kind !== "guest" && " My name, job title, email and phone are shown to other PIKOM members on my company's page."}</span>
           </label>
           {err && <ErrorBox code={err.code} msg={err.msg} />}
-          <div className="row"><button className="btn primary">Create account</button><button type="button" className="btn" onClick={() => { setStep(1); setErr(null); }}>Back</button></div>
-          <p className="small muted">In the live version we first email a link to confirm you own this address.</p>
+          <div className="row"><button className="btn primary" disabled={busy}>{busy ? "Creating…" : "Create account"}</button><button type="button" className="btn" onClick={() => { setStep(1); setErr(null); }}>Back</button></div>
+          
         </form>)}
 
       <div className="card stack" style={{ gap: 8, marginTop: 20 }}>
-        <h2 className="h3">Try these in the demo</h2>
+        <h2 className="h3">Try these during the PIKOM review</h2>
         <ul className="small" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.9 }}>
-          <li><code>new.person@forest-interactive.com</code> — whitelisted company with free seats</li>
           <li><code>anyone@demo-company.com.my</code> — sample company has used all 5 seats (AX-102)</li>
           <li><code>someone@unknown-co.com</code> — not whitelisted (AX-101) → offered a guest account</li>
           <li><code>new.individual@outlook.com</code> — whitelisted individual member</li>

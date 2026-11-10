@@ -6,7 +6,8 @@ import { useStore } from "@/lib/store";
 import { ErrorBox, Field } from "@/components/ui";
 
 export default function SignIn() {
-  const { signIn, db } = useStore();
+  const { signIn } = useStore();
+  const [busy, setBusy] = useState(false);
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -14,23 +15,23 @@ export default function SignIn() {
   const [forgot, setForgot] = useState(false);
   return (
     <div className="wrap page-head" style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", alignItems: "start" }}>
-      <form className="card stack" style={{ gap: 16, maxWidth: 520 }} onSubmit={e => {
-        e.preventDefault(); setErr(null);
-        const r = signIn(email, pw);
+      <form className="card stack" style={{ gap: 16, maxWidth: 520 }} onSubmit={async e => {
+        e.preventDefault(); setErr(null); setBusy(true);
+        const r = await signIn(email, pw); setBusy(false);
         if (!r.ok) return setErr(r);
-        const u = db.users.find(x => x.email === email.trim().toLowerCase());
+        const u = r.me;
         router.push(u && (["superadmin", "contentadmin"].includes(u.role) || u.staff) ? "/admin" : "/");
       }}>
         <h1 className="h2">Sign in to AI Xchange</h1>
         <Field label="Work email" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
         <Field label="Password" type="password" autoComplete="current-password" required value={pw} onChange={e => setPw(e.target.value)} />
         {err && <ErrorBox code={err.code} msg={err.msg} />}
-        <button className="btn primary">Sign in</button>
+        <button className="btn primary" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
         <div className="row between small">
           <button type="button" className="link-btn" onClick={() => setForgot(true)}>Forgot password?</button>
           <span>New here? <Link href="/register">Activate your access</Link></span>
         </div>
-        {forgot && <div className="alert info">In the live version we email a reset link to your work email. In this demo every sample account uses the password <b>demo1234</b>.</div>}
+        {forgot && <div className="alert info">Password reset by email is coming soon. For now, ask the AI Xchange admin to reset it for you.</div>}
       </form>
       <div className="card stack" style={{ gap: 10, background: "var(--blue-bg)", borderColor: "#BFDBFE" }}>
         <h2 className="h3">Who can sign in?</h2>
