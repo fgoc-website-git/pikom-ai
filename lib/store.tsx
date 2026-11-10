@@ -2,7 +2,7 @@
 // Client store. Data comes from the server (/api/state) and every change is sent to /api/action.
 // Screens update instantly by running the same rules locally; the server's answer then replaces it.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { act, makeIds, seatsUsedIn, fullAccess, type ActionName, type DB, type User, type Org, type Result, type Check, type CompanyProfile, type Job, type Rfp, type PEvent, type Content, type Announcement } from "./engine";
+import { act, makeIds, seatsUsedIn, fullAccess, type ActionName, type DB, type User, type Org, type Result, type Check, type CompanyProfile, type Job, type Rfp, type PEvent, type Content, type Announcement, type Role } from "./engine";
 import type { MemberType } from "./options";
 
 export * from "./engine";
@@ -19,12 +19,12 @@ interface Ctx {
   changePassword: (current: string, next: string) => Promise<Result>;
   updateMe: (p: Partial<User>) => void;
   updateOrgProfile: (orgId: string, p: Partial<CompanyProfile>) => void;
-  removeUser: (userId: string) => void; setMainHolder: (orgId: string, email: string) => void;
+  removeUser: (userId: string) => void; setMainHolder: (orgId: string, email: string) => Result; setCompanyRole: (userId: string, role: Role) => Result;
   addOrg: (o: { domain: string; name: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string }) => Result;
   updateOrg: (orgId: string, p: Partial<Org>) => Result; removeOrg: (orgId: string) => void;
   addIndividual: (i: { email: string; name: string; pikomNo: string; renewal: string }) => Result; removeIndividual: (email: string) => void;
-  addUserAsAdmin: (orgId: string, email: string, name: string) => Result;
-  addStaff: (email: string, name: string) => Result; removeStaff: (id: string) => void;
+  addUserAsAdmin: (orgId: string, email: string, name: string, role?: Role) => Result;
+  addStaff: (email: string, name: string, level?: "super" | "content") => Result; removeStaff: (id: string) => void;
   postJob: (j: Omit<Job, "id" | "postedOn" | "postedBy" | "orgId" | "company">) => void; deleteJob: (id: string) => void; toggleJob: (id: string) => void;
   postRfp: (r: Omit<Rfp, "id" | "postedOn" | "postedBy" | "orgId" | "buyer" | "status">) => void; updateRfp: (id: string, p: Partial<Rfp>) => void;
   saveEvent: (e: PEvent) => void; deleteEvent: (id: string) => void;
@@ -103,14 +103,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateMe: (p) => { run("updateMe", p); },
     updateOrgProfile: (orgId, p) => { run("updateOrgProfile", orgId, p); },
     removeUser: (id) => { run("removeUser", id); },
-    setMainHolder: (orgId, email) => { run("setMainHolder", orgId, email); },
+    setMainHolder: (orgId, email) => run("setMainHolder", orgId, email),
+    setCompanyRole: (id, role) => run("setCompanyRole", id, role),
     addOrg: (o) => run("addOrg", o),
     updateOrg: (orgId, p) => run("updateOrg", orgId, p),
     removeOrg: (id) => { run("removeOrg", id); },
     addIndividual: (i) => run("addIndividual", i),
     removeIndividual: (e) => { run("removeIndividual", e); },
-    addUserAsAdmin: (orgId, email, name) => run("addUserAsAdmin", orgId, email, name),
-    addStaff: (email, name) => run("addStaff", email, name),
+    addUserAsAdmin: (orgId, email, name, role) => run("addUserAsAdmin", orgId, email, name, role || "member"),
+    addStaff: (email, name, level) => run("addStaff", email, name, level || "content"),
     removeStaff: (id) => { run("removeStaff", id); },
     postJob: (j) => { run("postJob", j); }, deleteJob: (id) => { run("deleteJob", id); }, toggleJob: (id) => { run("toggleJob", id); },
     postRfp: (r) => { run("postRfp", r); }, updateRfp: (id, p) => { run("updateRfp", id, p); },

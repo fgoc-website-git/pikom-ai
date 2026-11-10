@@ -14,7 +14,9 @@ const ROWS = [
   ["Company details, people, titles and contacts", "—", "Yes"],
   ["RFPs: buyer, budget, requirements, respond", "Title only", "Yes"],
   ["Jobs: salary, description, apply", "Title only", "Yes"],
-  ["Post RFPs and jobs", "—", "Yes"],
+  ["Post RFPs", "—", "Company admins & content admins · individual members"],
+  ["Post jobs", "—", "Company admins & content admins"],
+  ["Apply for jobs", "—", "Yes (company and individual members)"],
   ["Events", "Open events only", "All, incl. members-only"],
   ["Past event slides & recordings", "—", "Yes"],
   ["People who can sign in", "1 (own email)", "5 per company · 1 per individual member"],
@@ -59,9 +61,9 @@ export default function Membership() {
         <h2 className="h2" style={{ marginBottom: 16 }}>Questions</h2>
         <div className="grid2">
           {[["My company is a PIKOM member but I get error AX-101", "Your email domain hasn't been whitelisted yet. Ask your company's PIKOM contact, or the secretariat, to add it."],
-            ["We've used all 5 seats (AX-102)", "Your main account holder can remove someone under My account → Team seats. For more seats, contact PIKOM."],
+            ["We've used all 5 seats (AX-102)", "Your company admin can remove someone under My account → Manage my company → People & seats. For more seats, contact PIKOM."],
             ["We use more than one email domain", "The secretariat can whitelist each domain. All of them share your company's 5 seats [to confirm]."],
-            ["Who is the main account holder?", "The person PIKOM names when your domain is whitelisted — usually your PIKOM contact. They see everyone who joins and edit the company profile."],
+            ["Who is the company admin?", "The person PIKOM names when your domain is whitelisted — usually your PIKOM contact. They manage your 5 seats and can make one more colleague admin, and give colleagues the content admin role to keep your profile, jobs and RFPs up to date."],
             ["I left my company", "Your account stops when your work email is removed. Individual members can keep a personal account."],
             ["Can I sign up with Gmail?", "Yes, as a free guest. For full access you need to be a PIKOM Individual Member, and the secretariat whitelists that exact address."]].map(([q, a]) => (
             <div key={q} className="card stack" style={{ gap: 6 }}><h3 className="h3" style={{ fontSize: 16 }}>{q}</h3><p className="muted" style={{ fontSize: 14 }}>{a}</p></div>))}

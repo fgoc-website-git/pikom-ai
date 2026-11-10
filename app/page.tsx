@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useStore, today } from "@/lib/store";
+import { useStore, today, canPostJob, PAYING } from "@/lib/store";
 import { companies } from "@/lib/directory";
-import { Avatar, fmtDate } from "@/components/ui";
+import { fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
+import { MemberCarousel } from "@/components/MemberCarousel";
 
 export default function Home() {
   const { db, me, full } = useStore();
@@ -13,12 +14,12 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [where, setWhere] = useState("members");
   const all = companies(db);
-  const spotlight = db.spotlight.map(id => all.find(c => c.org.id === id)).filter(Boolean) as typeof all;
+  const carousel = [...all].sort((a, b) => Number(!!b.logo) - Number(!!a.logo) || a.name.localeCompare(b.name));
   const jobs = db.jobs.filter(j => !j.hidden).sort((a, b) => b.postedOn.localeCompare(a.postedOn)).slice(0, 4);
   const rfps = db.rfps.filter(r => r.status === "Open" && !r.hidden).slice(0, 3);
   const events = db.events.filter(e => e.status === "Published" && e.date >= today()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
   const featured = db.content.filter(c => c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 4);
-  const people = db.users.filter(u => ["main", "member", "individual"].includes(u.role)).length;
+  const people = db.users.filter(u => PAYING.includes(u.role)).length;
 
   return (
     <>
@@ -35,12 +36,12 @@ export default function Home() {
             <button className="btn primary sm" style={{ minHeight: 38, padding: "0 16px" }}>Search</button>
           </form>
           <div className="row" style={{ gap: 10 }}>
-            {full ? <><Link className="btn accent" href="/opportunities?tab=jobs&post=1">Post a job</Link><Link className="btn ghost-dark" href="/opportunities">Find opportunities</Link></>
+            {full ? <>{canPostJob(me) ? <Link className="btn accent" href="/opportunities?tab=jobs&post=1">Post a job</Link> : <Link className="btn accent" href="/opportunities?tab=jobs">Browse jobs</Link>}<Link className="btn ghost-dark" href="/opportunities">Find opportunities</Link></>
               : <><Link className="btn accent" href="/membership">Become a PIKOM member</Link>{!me && <Link className="btn ghost-dark" href="/register">Already a member? Activate access</Link>}</>}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#1E3A5F", border: "1px solid #1E3A5F", borderRadius: 14, overflow: "hidden", maxWidth: 460, justifySelf: "end", width: "100%" }}>
-          {[["2,000+", "PIKOM member companies"], [String(db.orgs.length), "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => r.status === "Open").length + db.jobs.length), "Open opportunities"]].map(([n, l]) => (
+          {[["2,000+", "PIKOM member companies"], ["157", "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => r.status === "Open").length + db.jobs.length), "Open opportunities"]].map(([n, l]) => (
             <div key={l} className="stack" style={{ gap: 2, background: "#0E2647", padding: "22px 22px" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 30, fontWeight: 800 }}>{n}</span><span className="small" style={{ color: "#94A3B8" }}>{l}</span></div>))}
         </div>
       </div></section>
@@ -92,13 +93,8 @@ export default function Home() {
       </section>
 
       <section className="wrap section">
-        <div className="section-head"><div><h2 className="h2">Member spotlight</h2><p>Chosen monthly by the PIKOM team.</p></div><Link href="/members" className="more">All members →</Link></div>
-        <div className="grid">{spotlight.map(c => (
-          <Link key={c.org.id} href={`/members/${c.slug}`} className="card stack" style={{ gap: 10, color: "var(--ink)" }}>
-            <div className="row" style={{ flexWrap: "nowrap" }}><Avatar name={c.name} logo={c.logo} /><span className="stack" style={{ gap: 0 }}><span style={{ fontWeight: 600 }}>{c.name}</span><span className="small" style={{ color: "var(--green)", fontWeight: 600 }}>Verified PIKOM member</span></span></div>
-            <p className="small muted" style={{ fontSize: 14 }}>{c.tagline}</p>
-            {c.category && <span className="badge" style={{ alignSelf: "flex-start" }}>{c.category}</span>}
-          </Link>))}</div>
+        <div className="section-head"><div><h2 className="h2">Our members</h2><p>Verified PIKOM member companies on AI Xchange.</p></div><Link href="/members" className="more">All members →</Link></div>
+        <MemberCarousel items={carousel} />
       </section>
     </>
   );

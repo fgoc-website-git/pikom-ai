@@ -7,8 +7,8 @@ import { EventsAdmin, InsightsAdmin, HomeAdmin, PostsAdmin, Reports } from "@/co
 
 type Tab = "companies" | "individuals" | "people" | "roles" | "events" | "insights" | "home" | "posts" | "reports" | "log";
 const GROUPS: { title: string; superOnly: boolean; tabs: [Tab, string][] }[] = [
-  { title: "Access", superOnly: true, tabs: [["companies", "Companies"], ["individuals", "Individual members"], ["people", "All people"], ["roles", "Admin roles"]] },
-  { title: "Content", superOnly: false, tabs: [["events", "Events"], ["insights", "Insights & policy"], ["home", "Announcements & spotlight"], ["posts", "Post checks"]] },
+  { title: "Access", superOnly: true, tabs: [["companies", "Companies"], ["individuals", "Individual members"], ["people", "All people"], ["roles", "Site admins"]] },
+  { title: "Content", superOnly: false, tabs: [["events", "Events"], ["insights", "Insights & policy"], ["home", "Announcements"], ["posts", "Post checks"]] },
   { title: "Oversight", superOnly: false, tabs: [["reports", "Reports"], ["log", "Activity log"]] },
 ];
 
@@ -23,9 +23,9 @@ function AdminInner() {
   return (
     <div className="wrap page-head">
       <div className="stack" style={{ gap: 4, marginBottom: 20 }}>
-        <span className="eyebrow">PIKOM secretariat</span>
-        <h1 className="h1">{isSuper ? "Super admin" : "Content admin"}</h1>
-        <p className="muted">{isSuper ? "Manage who can access AI Xchange, and everything published on it." : "Manage events, insights and policy, home page content and member posts."}</p>
+        <span className="eyebrow">Site management</span>
+        <h1 className="h1">{isSuper ? "Super admin" : "PIKOM admin"}</h1>
+        <p className="muted">{isSuper ? "Manage who can access AI Xchange, and everything published on it." : "Manage PIKOM events, insights and policy, announcements and member posts."}</p>
       </div>
       <div className="side-layout">
         <nav aria-label="Admin sections" className="card stack" style={{ gap: 14, padding: 16 }}>

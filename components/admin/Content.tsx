@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useStore, eventCounts, newId, today, roleLabel, type PEvent, type Content, type ContentKind, type EventType } from "@/lib/store";
-import { companies } from "@/lib/directory";
 import { Field, Area, fmtDate, Reveal } from "@/components/ui";
 
 type Toast = (s: string) => void;
@@ -136,13 +135,10 @@ export function InsightsAdmin({ toast }: { toast: Toast }) {
   );
 }
 
-/* ---------------- Announcements + spotlight ---------------- */
+/* ---------------- Announcements ---------------- */
 export function HomeAdmin({ toast }: { toast: Toast }) {
-  const { db, saveAnnouncement, deleteAnnouncement, setSpotlight } = useStore();
+  const { db, saveAnnouncement, deleteAnnouncement } = useStore();
   const [a, setA] = useState({ text: "", link: "" });
-  const [q, setQ] = useState("");
-  const all = companies(db);
-  const pick = (id: string) => { const s = db.spotlight.includes(id) ? db.spotlight.filter(x => x !== id) : [...db.spotlight, id]; if (s.length > 4) return toast("Spotlight shows up to 4 companies"); setSpotlight(s); };
   return (
     <div className="stack" style={{ gap: 20 }}>
       <div className="card stack" style={{ gap: 12 }}>
@@ -161,12 +157,6 @@ export function HomeAdmin({ toast }: { toast: Toast }) {
           <div style={{ flex: "1 1 200px" }}><Field label="Link (optional)" placeholder="/events" value={a.link} onChange={e => setA({ ...a, link: e.target.value })} /></div>
           <button className="btn">Add</button>
         </form>
-      </div>
-      <div className="card stack" style={{ gap: 12 }}>
-        <div className="row between"><h2 className="h3">Member spotlight ({db.spotlight.length}/4)</h2><input className="input" style={{ maxWidth: 260 }} aria-label="Search companies" placeholder="Search companies" value={q} onChange={e => setQ(e.target.value)} /></div>
-        <p className="small muted">Pick up to 4 companies for the home page this month. Choose members with complete profiles.</p>
-        <div className="chips">{all.filter(c => db.spotlight.includes(c.org.id) || !q || c.name.toLowerCase().includes(q.toLowerCase())).slice(0, 40).map(c => (
-          <label key={c.org.id} className={`chip${db.spotlight.includes(c.org.id) ? " on" : ""}`}><input type="checkbox" checked={db.spotlight.includes(c.org.id)} onChange={() => pick(c.org.id)} />{c.name}</label>))}</div>
       </div>
     </div>
   );
@@ -201,7 +191,7 @@ export function Reports() {
   const active30 = db.users.filter(u => u.lastSignIn && now - +new Date(u.lastSignIn.replace(" ", "T")) < 30 * 864e5).length;
   const due = [...db.orgs.map(o => ({ name: o.name, renewal: o.renewal, kind: "Company" })), ...db.individuals.map(i => ({ name: i.name, renewal: i.renewal, kind: "Individual" }))]
     .filter(x => x.renewal && +new Date(x.renewal) - now < 90 * 864e5).sort((a, b) => a.renewal.localeCompare(b.renewal));
-  const byRole = (["main", "member", "individual", "guest"] as const).map(r => [roleLabel(r), db.users.filter(u => u.role === r).length] as const);
+  const byRole = (["main", "editor", "member", "individual", "guest"] as const).map(r => [roleLabel(r), db.users.filter(u => u.role === r).length] as const);
   const kpis = [
     ["Companies in directory", db.orgs.length], ["Companies with domain set", db.orgs.filter(o => o.domain).length],
     ["Companies with people signed in", db.orgs.filter(o => seatsUsed(o.id) > 0).length], ["Seats used", db.orgs.reduce((n, o) => n + seatsUsed(o.id), 0)],

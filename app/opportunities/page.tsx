@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useStore, PAYING, STAFF } from "@/lib/store";
+import { useStore, canPostJob, canPostRfp } from "@/lib/store";
 import { JOB_CATEGORIES, WORK_MODES, EXPERIENCE, JOB_TYPES, STATES, INDUSTRIES_SERVED } from "@/lib/options";
 import { slugify } from "@/lib/directory";
 import { Field, Area, SelectOther, ErrorBox, Avatar, Locked, useToast, ago, fmtDate } from "@/components/ui";
@@ -36,13 +36,14 @@ function Business() {
   const [err, setErr] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const toast = useToast();
-  const canPost = !!me && (PAYING.includes(me.role) || STAFF.includes(me.role));
+  const canPost = canPostRfp(me);
   const list = db.rfps.filter(r => !r.hidden).sort((a, b) => Number(a.status !== "Open") - Number(b.status !== "Open") || a.closes.localeCompare(b.closes));
   return (
     <section className="wrap stack" style={{ gap: 14, paddingTop: 28 }}>
       <div className="row between">
         <p className="muted">Buyers looking for AI vendors and partners. Responses go straight to the buyer.</p>
-        {canPost && <button className="btn primary" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post an RFP"}</button>}
+        {canPost ? <button className="btn primary" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post an RFP"}</button>
+          : full && me?.orgId && <span className="small muted">RFPs are posted by your company admin or content admin.</span>}
       </div>
       {!full && <Locked what="buyer names, budgets, requirements and contacts" />}
       {posting && (
@@ -97,8 +98,8 @@ function Jobs() {
   const [f, setF] = useState(blankJob);
   const [err, setErr] = useState("");
   const toast = useToast();
-  useEffect(() => { const p = new URLSearchParams(window.location.search); if (p.get("post") && me && PAYING.includes(me.role)) setPosting(true); }, [me]);
-  const canPost = !!me && PAYING.includes(me.role);
+  useEffect(() => { const p = new URLSearchParams(window.location.search); if (p.get("post") && canPostJob(me)) setPosting(true); }, [me]);
+  const canPost = canPostJob(me);
   const known = JOB_CATEGORIES.filter(c => c !== "Other");
   const shown = db.jobs.filter(j => !j.hidden)
     .filter(j => cat === "All" || (cat === "Other" ? !known.includes(j.category) : j.category === cat))
@@ -112,7 +113,8 @@ function Jobs() {
       <section className="wrap" style={{ paddingTop: 28 }}>
         <div className="row between" style={{ marginBottom: 14 }}>
           <p className="muted">Roles at verified PIKOM member companies. Apply on the employer's LinkedIn post or by email.</p>
-          {canPost && <button className="btn accent" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post a job"}</button>}
+          {canPost ? <button className="btn accent" onClick={() => setPosting(!posting)}>{posting ? "Close" : "+ Post a job"}</button>
+            : full && me && <span className="small muted">{me.role === "individual" ? "Job openings are posted by member companies — you can apply to any of them." : me.orgId ? "Jobs are posted by your company admin or content admin." : ""}</span>}
         </div>
         {!full && <Locked what="salaries, job descriptions and how to apply" />}
         {posting && canPost && (

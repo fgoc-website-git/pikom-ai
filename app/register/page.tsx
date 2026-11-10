@@ -40,7 +40,7 @@ export default function Register() {
                 {err.code === ERR.ALREADY_REGISTERED && <Link className="btn sm" href="/signin">Sign in</Link>}
                 {guestable && <><Link className="btn sm" href="/membership#contact">Contact PIKOM</Link><button type="button" className="btn sm primary" onClick={() => { setFound({ kind: "guest" }); setStep(2); setErr(null); }}>Continue with a free guest account</button></>}
                 {err.code === ERR.SUSPENDED && <Link className="btn sm" href="/membership#contact">Contact PIKOM</Link>}
-                {err.code === ERR.SEATS_FULL && <span className="small">Main account holders free a seat under <b>My account → Team seats</b>.</span>}
+                {err.code === ERR.SEATS_FULL && <span className="small">Company admins free a seat under <b>My account → Manage my company</b>.</span>}
               </div>
             </ErrorBox>)}
           <button className="btn primary" disabled={busy}>{busy ? "Checking…" : "Continue"}</button>
@@ -61,7 +61,7 @@ export default function Register() {
             <div className="alert ok stack" style={{ gap: 8 }}>
               <span><b>{found.org.name}</b> is a {found.org.type} of PIKOM. You'll get <b>full access</b> and join your company's account.</span>
               <SeatDots used={seatsUsed(found.org.id)} limit={found.org.seatLimit} />
-              {found.org.mainEmail === email.trim().toLowerCase() && <span>You are the <b>main account holder</b>: you'll see everyone who joins from @{found.org.domain} and manage the company profile.</span>}
+              {found.org.mainEmail === email.trim().toLowerCase() && <span>You'll be the <b>company admin</b>: you'll see everyone who joins from @{found.org.domain} and manage the company profile.</span>}
             </div>
           ) : found.kind === "individual" ? <div className="alert ok">Your email is whitelisted as a <b>PIKOM Individual Member</b> — you'll get full access.</div>
             : <div className="alert info">You're creating a <b>free guest account</b>. You can read policy and insights and browse listings. Member details, contacts and applying need a PIKOM membership.</div>}

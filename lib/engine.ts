@@ -3,14 +3,25 @@
 import { SEAT_LIMIT, PUBLIC_EMAIL_DOMAINS, type MemberType } from "./options";
 import { MEMBERS, CATS } from "./data";
 
-export type Role = "superadmin" | "contentadmin" | "main" | "member" | "individual" | "guest";
-export const PAYING: Role[] = ["main", "member", "individual"];
+/** main = Company admin (max 2 per company), editor = Company content admin, contentadmin = PIKOM admin. */
+export type Role = "superadmin" | "contentadmin" | "main" | "editor" | "member" | "individual" | "guest";
+export const PAYING: Role[] = ["main", "editor", "member", "individual"];
+export const MAX_COMPANY_ADMINS = 2;
 export const STAFF: Role[] = ["superadmin", "contentadmin"];
 /** Full access = paying members and PIKOM staff. Guests and visitors see listings only. */
 export const isSuper = (u: User | null) => !!u && (u.role === "superadmin" || u.staff === "super");
 export const isStaff = (u: User | null) => !!u && (STAFF.includes(u.role) || !!u.staff);
 export const fullAccess = (u: User | null) => !!u && (PAYING.includes(u.role) || isStaff(u));
 export const canManageContent = isStaff;
+/** Company admin of this company (or super admin). */
+export const canManageCompany = (u: User | null, orgId: string | null | undefined) => !!u && !!orgId && (isSuper(u) || (u.orgId === orgId && u.role === "main"));
+/** Can edit the company profile and its jobs/RFPs. */
+export const canEditCompany = (u: User | null, orgId: string | null | undefined) => !!u && !!orgId && (isSuper(u) || (u.orgId === orgId && (u.role === "main" || u.role === "editor")));
+/** Jobs are posted by companies only: company admins and company content admins. */
+export const canPostJob = (u: User | null) => !!u && !!u.orgId && (u.role === "main" || u.role === "editor");
+/** RFPs: company admins/content admins, individual members, and super admins. */
+export const canPostRfp = (u: User | null) => canPostJob(u) || (!!u && (u.role === "individual" || isSuper(u)));
+export const adminsOf = (db: DB, orgId: string) => db.users.filter(u => u.orgId === orgId && u.role === "main");
 
 export interface CompanyProfile {
   about: string; website: string; category: string; capabilities: string[]; industries: string[];
@@ -161,7 +172,8 @@ export function eventCounts(e: PEvent) {
   const left = e.capacity == null ? null : Math.max(0, e.capacity - confirmed);
   return { confirmed, waitlist, left };
 }
-export const roleLabel = (r: Role) => ({ superadmin: "Super admin", contentadmin: "Content admin", main: "Main account holder", member: "Company member", individual: "Individual member", guest: "Guest (free account)" }[r]);
+export const roleLabel = (r: Role) => ({ superadmin: "Super admin", contentadmin: "PIKOM admin", main: "Company admin", editor: "Company content admin", member: "Company member", individual: "Individual member", guest: "Guest (free account)" }[r]);
+export const COMPANY_ROLES: Role[] = ["main", "editor", "member"];
 export const newId = () => uid();
 export const stamp = () => new Date(Date.now() + 8 * 36e5).toISOString().slice(0, 16).replace("T", " "); // Malaysia time
 export const seatsUsedIn = (db: DB, orgId: string) => db.users.filter(u => u.orgId === orgId).length;
@@ -197,9 +209,9 @@ export function registerUser(db: DB, d: { email: string; name: string; password:
   if (d.password.length < 8) return { db, result: { ok: false, code: "AX-107", msg: "Password must be at least 8 characters." } };
   if (!d.name.trim()) return { db, result: { ok: false, code: "AX-109", msg: "Please enter your name." } };
   const org = chk.ok && chk.kind === "org" ? chk.org! : null;
-  const role: Role = guestOk ? "guest" : org ? (org.mainEmail === email ? "main" : "member") : "individual";
+  const role: Role = guestOk ? "guest" : org ? (org.mainEmail === email && adminsOf(db, org.id).length < MAX_COMPANY_ADMINS ? "main" : "member") : "individual";
   const user: User = { id: uid(), email, name: d.name.trim().slice(0, 120), password: d.password, role, orgId: org?.id || null, jobTitle: (d.jobTitle || "").slice(0, 120), phone: "", linkedin: "", bio: "", interests: [], company: d.company?.slice(0, 120), createdOn: today(), lastSignIn: stamp() };
-  const what = `${user.name} registered as ${role === "guest" ? "a guest" : org ? `${role === "main" ? "main holder" : "member"} of ${org.domain} (${seatsUsedIn(db, org.id) + 1}/${org.seatLimit})` : "an Individual Member"}`;
+  const what = `${user.name} registered as ${role === "guest" ? "a guest" : org ? `${role === "main" ? "company admin" : "member"} of ${org.domain} (${seatsUsedIn(db, org.id) + 1}/${org.seatLimit})` : "an Individual Member"}`;
   return { db: addLog({ ...db, users: [...db.users, user] }, user.name, what), result: { ok: true }, user };
 }
 
@@ -218,7 +230,7 @@ const PROFILE_FIELDS = ["about", "website", "category", "capabilities", "industr
 const ORG_FIELDS = ["domain", "name", "type", "pikomNo", "mainEmail", "seatLimit", "status", "renewal"] as const;
 const pick = <T extends object>(o: any, keys: readonly string[]): Partial<T> => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keys.includes(k))) as Partial<T>;
 
-export const ACTIONS = ["updateMe", "updateOrgProfile", "removeUser", "setMainHolder", "addOrg", "updateOrg", "removeOrg", "addIndividual", "removeIndividual", "addUserAsAdmin", "addStaff", "removeStaff", "postJob", "deleteJob", "toggleJob", "postRfp", "updateRfp", "saveEvent", "deleteEvent", "registerEvent", "cancelEvent", "markAttended", "saveContent", "deleteContent", "saveAnnouncement", "deleteAnnouncement", "setSpotlight"] as const;
+export const ACTIONS = ["updateMe", "updateOrgProfile", "removeUser", "setMainHolder", "setCompanyRole", "addOrg", "updateOrg", "removeOrg", "addIndividual", "removeIndividual", "addUserAsAdmin", "addStaff", "removeStaff", "postJob", "deleteJob", "toggleJob", "postRfp", "updateRfp", "saveEvent", "deleteEvent", "registerEvent", "cancelEvent", "markAttended", "saveContent", "deleteContent", "saveAnnouncement", "deleteAnnouncement", "setSpotlight"] as const;
 export type ActionName = typeof ACTIONS[number];
 
 /** Runs one action as `me`. Pure: returns the new data and the result. Permission checks live here,
@@ -238,20 +250,37 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...db, users: db.users.map(u => u.id === me.id ? { ...u, ...p } : u) }, null);
     }
     case "updateOrgProfile": {
-      const [orgId, raw] = args; if (!(sup || (me.orgId === orgId && me.role === "main"))) return deny;
+      const [orgId, raw] = args; if (!canEditCompany(me, orgId)) return deny;
       const p = pick<CompanyProfile>(raw, PROFILE_FIELDS);
       return ok({ ...db, orgs: db.orgs.map(o => o.id === orgId ? { ...o, profile: { ...o.profile, ...p } } : o) }, `Company profile updated for ${orgName(orgId)}`);
     }
     case "removeUser": {
       const u = db.users.find(x => x.id === args[0]); if (!u) return no("AX-404", "Person not found.");
-      if (!(sup || (me.role === "main" && u.orgId === me.orgId && u.id !== me.id))) return deny;
+      if (!(sup || canManageCompany(me, u.orgId))) return deny;
       if (u.id === me.id) return no("AX-403", "You can't remove your own account here.");
+      if (u.role === "main" && u.orgId && adminsOf(db, u.orgId).length <= 1 && !sup) return no("AX-111", "A company needs at least one admin. Make someone else admin first.");
       if (isStaff(u) && !sup) return no("AX-403", "This person is a PIKOM admin. Ask a super admin to remove them.");
       return ok({ ...db, users: db.users.filter(x => x.id !== u.id), events: db.events.map(e => promote({ ...e, registrations: e.registrations.filter(r => r.userId !== u.id) })) }, `Removed ${u.name} (${u.email})`);
     }
     case "setMainHolder": {
-      const [orgId, email] = args; if (!sup) return deny;
-      return ok({ ...db, orgs: db.orgs.map(o => o.id === orgId ? { ...o, mainEmail: email } : o), users: db.users.map(u => u.orgId !== orgId ? u : { ...u, role: u.email === email ? "main" : "member" }) }, `Main account holder for ${orgName(orgId)} set to ${email}`);
+      const [orgId, raw] = args; if (!sup) return deny;
+      const email = String(raw || "").trim().toLowerCase(); const o = db.orgs.find(x => x.id === orgId);
+      if (!o) return no("AX-404", "Company not found.");
+      if (email && o.domain && domainOf(email) !== o.domain) return no("AX-304", `The admin's email must end in @${o.domain}.`);
+      const u = db.users.find(x => x.email === email && x.orgId === orgId);
+      if (u && u.role !== "main" && adminsOf(db, orgId).length >= MAX_COMPANY_ADMINS) return no("AX-110", `${o.name} already has ${MAX_COMPANY_ADMINS} company admins. Change one of them to another role first.`);
+      return ok({ ...db, orgs: db.orgs.map(x => x.id === orgId ? { ...x, mainEmail: email } : x), users: db.users.map(x => u && x.id === u.id ? { ...x, role: "main" } : x) },
+        `Company admin for ${o.name} set to ${email || "(none)"}`, u ? `${u.name} is now a company admin.` : email ? `${email} becomes company admin when they register.` : "Saved.");
+    }
+    case "setCompanyRole": {
+      const [userId, role] = args as [string, Role];
+      const u = db.users.find(x => x.id === userId); if (!u || !u.orgId) return no("AX-404", "Person not found.");
+      if (!COMPANY_ROLES.includes(role)) return no("AX-400", "Unknown role.");
+      if (!canManageCompany(me, u.orgId)) return deny;
+      const admins = adminsOf(db, u.orgId);
+      if (role === "main" && u.role !== "main" && admins.length >= MAX_COMPANY_ADMINS) return no("AX-110", `A company can have up to ${MAX_COMPANY_ADMINS} admins. Change one admin to another role first.`);
+      if (u.role === "main" && role !== "main" && admins.length <= 1) return no("AX-111", "A company needs at least one admin. Make someone else admin first.");
+      return ok({ ...db, users: db.users.map(x => x.id === u.id ? { ...x, role } : x) }, `${u.name} (${orgName(u.orgId)}) is now ${roleLabel(role).toLowerCase()}`, `${u.name} is now ${roleLabel(role).toLowerCase()}.`);
     }
     case "addOrg": {
       if (!sup) return deny;
@@ -297,38 +326,46 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...db, individuals: db.individuals.filter(i => i.email !== email), users: db.users.filter(u => !(u.role === "individual" && u.email === email)) }, `Removed individual ${email}`);
     }
     case "addUserAsAdmin": {
-      if (!sup) return deny;
-      const [orgId, email, nm] = args; const o = db.orgs.find(x => x.id === orgId); const e = String(email || "").trim().toLowerCase();
+      const [orgId, email, nm, roleArg] = args; if (!canManageCompany(me, orgId)) return deny;
+      const o = db.orgs.find(x => x.id === orgId); const e = String(email || "").trim().toLowerCase();
+      const wanted: Role = COMPANY_ROLES.includes(roleArg) ? roleArg : "member";
       if (!o) return no("AX-101", "Unknown company.");
       if (!o.domain) return no("AX-101", "Add the company's email domain first.");
       if (domainOf(e) !== o.domain) return no("AX-304", `Email must end in @${o.domain}.`);
       if (db.users.some(u => u.email === e)) return no(ERR.ALREADY_REGISTERED, "This email is already registered.");
       if (seatsUsedIn(db, orgId) >= o.seatLimit) return no(ERR.SEATS_FULL, `All ${o.seatLimit} seats are used. Remove someone first.`);
-      const user: User = { id: uid(), email: e, name: String(nm || "").trim() || e, password: "demo1234", role: o.mainEmail === e ? "main" : "member", orgId, jobTitle: "", phone: "", linkedin: "", bio: "", interests: [], createdOn: today() };
+      if (wanted === "main" && adminsOf(db, orgId).length >= MAX_COMPANY_ADMINS) return no("AX-110", `A company can have up to ${MAX_COMPANY_ADMINS} admins.`);
+      const user: User = { id: uid(), email: e, name: String(nm || "").trim() || e, password: "demo1234", role: wanted, orgId, jobTitle: "", phone: "", linkedin: "", bio: "", interests: [], createdOn: today() };
       return ok({ ...db, users: [...db.users, user] }, `Added ${e} to ${o.name}`, `${e} added with the temporary password demo1234 — ask them to change it under My account → Password.`);
     }
     case "addStaff": {
       if (!sup) return deny;
-      const e = String(args[0] || "").trim().toLowerCase();
+      const e = String(args[0] || "").trim().toLowerCase(); const level: "super" | "content" = args[2] === "super" ? "super" : "content";
+      const label = level === "super" ? "super admin" : "PIKOM admin";
       if (!EMAIL_RE.test(e)) return no("AX-305", "Enter a valid email address.");
-      if (db.users.some(u => u.email === e)) return no(ERR.ALREADY_REGISTERED, "This email already has an account.");
-      const user: User = { id: uid(), email: e, name: String(args[1] || "").trim() || e, password: "demo1234", role: "contentadmin", orgId: null, jobTitle: "Content admin", phone: "", linkedin: "", bio: "", interests: [], createdOn: today() };
-      return ok({ ...db, users: [...db.users, user] }, `Gave content admin access to ${e}`, `${e} is now a content admin (temporary password demo1234).`);
+      const existing = db.users.find(u => u.email === e);
+      if (existing) {
+        if (isStaff(existing) && !(level === "super" && !isSuper(existing))) return no(ERR.ALREADY_REGISTERED, "This person already has site admin access.");
+        return ok({ ...db, users: db.users.map(u => u.id === existing.id ? (u.orgId || PAYING.includes(u.role) ? { ...u, staff: level } : { ...u, role: level === "super" ? "superadmin" : "contentadmin", staff: undefined }) : u) }, `Gave ${label} access to ${e}`, `${existing.name} is now a ${label}. They keep their existing account.`);
+      }
+      const user: User = { id: uid(), email: e, name: String(args[1] || "").trim() || e, password: "demo1234", role: level === "super" ? "superadmin" : "contentadmin", orgId: null, jobTitle: level === "super" ? "Super admin" : "PIKOM admin", phone: "", linkedin: "", bio: "", interests: [], createdOn: today() };
+      return ok({ ...db, users: [...db.users, user] }, `Gave ${label} access to ${e}`, `${e} is now a ${label} (temporary password demo1234).`);
     }
     case "removeStaff": {
       if (!sup) return deny; const u = db.users.find(x => x.id === args[0]);
       if (!u || u.id === me.id) return no("AX-403", "You can't remove your own admin access.");
-      return ok({ ...db, users: db.users.filter(x => x.id !== u.id) }, `Removed admin access for ${u.email}`);
+      const keepAccount = !!u.orgId || PAYING.includes(u.role);
+      return ok({ ...db, users: keepAccount ? db.users.map(x => x.id === u.id ? { ...x, staff: undefined } : x) : db.users.filter(x => x.id !== u.id) }, `Removed site admin access for ${u.email}`, keepAccount ? `${u.name} keeps their member account.` : undefined);
     }
     case "postJob": {
-      if (!full || me.role === "superadmin" || me.role === "contentadmin") return deny;
+      if (!canPostJob(me)) return no("AX-403", "Jobs are posted by company admins and company content admins.");
       const j = args[0] || {}; const myOrg = me.orgId ? db.orgs.find(o => o.id === me.orgId) : null;
       if (!String(j.title || "").trim()) return no("AX-501", "Add a job title.");
       return ok({ ...db, jobs: [{ ...j, id: uid(), orgId: me.orgId, company: myOrg ? myOrg.name.replace(/ Sdn\. Bhd\.| \(M\)/g, "") : me.name, postedOn: today(), postedBy: me.email, hidden: false }, ...db.jobs] }, `${me.name} posted job “${j.title}”`);
     }
     case "deleteJob": {
       const j = db.jobs.find(x => x.id === args[0]); if (!j) return no("AX-404", "Job not found.");
-      if (!(staff || j.postedBy === me.email)) return deny;
+      if (!(staff || j.postedBy === me.email || canEditCompany(me, j.orgId))) return deny;
       return ok({ ...db, jobs: db.jobs.filter(x => x.id !== j.id) }, `Closed job post “${j.title}”`);
     }
     case "toggleJob": {
@@ -336,14 +373,14 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...db, jobs: db.jobs.map(j => j.id === args[0] ? { ...j, hidden: !j.hidden } : j) }, "Changed visibility of a job post");
     }
     case "postRfp": {
-      if (!full) return deny;
+      if (!canPostRfp(me)) return no("AX-403", "RFPs are posted by company admins, company content admins and individual members.");
       const r = args[0] || {}; const myOrg = me.orgId ? db.orgs.find(o => o.id === me.orgId) : null;
       if (!String(r.title || "").trim()) return no("AX-501", "Add a title.");
       return ok({ ...db, rfps: [{ ...r, id: uid(), orgId: me.orgId, buyer: myOrg ? myOrg.name.replace(" Sdn. Bhd.", "") : me.name, status: "Open", postedOn: today(), postedBy: me.email, hidden: false }, ...db.rfps] }, `${me.name} posted RFP “${r.title}”`);
     }
     case "updateRfp": {
       const r = db.rfps.find(x => x.id === args[0]); if (!r) return no("AX-404", "RFP not found.");
-      if (!(staff || r.postedBy === me.email)) return deny;
+      if (!(staff || r.postedBy === me.email || canEditCompany(me, r.orgId))) return deny;
       const p = pick<Rfp>(args[1], ["title", "sector", "type", "budget", "closes", "description", "contactEmail", "status", "hidden"]);
       return ok({ ...db, rfps: db.rfps.map(x => x.id === r.id ? { ...x, ...p } : x) }, `Updated RFP “${r.title}”: ${Object.keys(p).join(", ")}`);
     }
@@ -420,7 +457,7 @@ export function viewFor(db: DB, me: User | null): DB {
     ...db,
     users,
     individuals: sup ? db.individuals : db.individuals.filter(i => i.email === me?.email),
-    log: staff ? db.log : [],
+    log: sup ? db.log : [],
     orgs: full ? db.orgs : db.orgs.map(o => ({ ...o, mainEmail: "", pikomNo: "", profile: { ...o.profile, phone: "", linkedin: "" } })),
     jobs: db.jobs.filter(j => !j.hidden || staff || mine(j.postedBy)).map(j => full ? j : { ...j, salary: "", description: "", applyEmail: "", linkedinUrl: "", postedBy: "" }),
     rfps: db.rfps.filter(r => !r.hidden || staff || mine(r.postedBy)).map(r => full ? r : { ...r, budget: "", description: "", contactEmail: "", postedBy: "" }),
