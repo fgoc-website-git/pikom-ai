@@ -15,7 +15,8 @@ function getPool() {
   if (!pool) {
     // Supabase's certificate chain isn't in Node's store; keep TLS on but skip CA verification.
     const noSsl = /sslmode=disable/.test(URL_);
-    const conn = URL_.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+    let conn = URL_;
+    try { const u = new URL(URL_); u.searchParams.delete("sslmode"); conn = u.toString(); } catch {}
     pool = new Pool({ connectionString: conn, ssl: noSsl ? false : { rejectUnauthorized: false }, max: 3 });
   }
   return pool;
