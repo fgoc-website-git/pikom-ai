@@ -169,3 +169,13 @@ td { padding: 12px 16px; border-top: 1px solid var(--soft); vertical-align: midd
 @media (max-width: 860px) { .side-layout { grid-template-columns: minmax(0, 1fr); } }
 .side-layout > * { min-width: 0; } .grid > *, .grid2 > *, .form-grid > * { min-width: 0; }
 .table-wrap { position: relative; }
+
+/* v5 spacing + interaction polish */
+.reveal { scroll-margin-top: 96px; }
+th:first-child, td:first-child { padding-left: 20px; }
+th:last-child, td:last-child { padding-right: 20px; }
+td .row { flex-wrap: nowrap; }
+tr.on > td { background: var(--blue-bg); }
+.table-wrap + .reveal, .reveal + .table-wrap { margin-top: 4px; }
+.empty { padding: 28px 20px; text-align: center; color: var(--mut); background: #fff; border: 1px dashed var(--line2); border-radius: var(--r2); }
+.nw { white-space: nowrap; }

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useStore, eventCounts, newId, today, roleLabel, type PEvent, type Content, type ContentKind, type EventType } from "@/lib/store";
 import { companies } from "@/lib/directory";
-import { Field, Area, fmtDate } from "@/components/ui";
+import { Field, Area, fmtDate, Reveal } from "@/components/ui";
 
 type Toast = (s: string) => void;
 const SR = { position: "absolute" as const, width: 1, height: 1, overflow: "hidden" };
@@ -68,16 +68,16 @@ export function EventsAdmin({ toast }: { toast: Toast }) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="row between"><p className="muted">Create online, physical or hybrid events. Members register on the Events page.</p>{!edit && <button className="btn primary" onClick={() => setEdit(blankEvent())}>+ New event</button>}</div>
-      {edit && <EventForm init={edit} toast={toast} done={() => setEdit(null)} />}
+      {edit && <Reveal key={edit.id || "new"}><EventForm init={edit} toast={toast} done={() => setEdit(null)} /></Reveal>}
       <div className="table-wrap"><table>
-        <thead><tr><th>Event</th><th>Date</th><th>Format</th><th>Registered</th><th>Waitlist</th><th>Status</th><th><span style={SR}>Actions</span></th></tr></thead>
+        <thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>Status</th><th><span style={SR}>Actions</span></th></tr></thead>
         <tbody>{list.map(e => { const c = eventCounts(e); return (
-          <tr key={e.id}><td><b>{e.title}</b><div className="small muted">{e.audience === "members" ? "Members only" : "Members and guests"}{e.perCompany ? ` · max ${e.perCompany}/company` : ""}</div></td><td>{fmtDate(e.date)}{e.date < today() && <div className="small muted">Past</div>}</td><td>{e.type}</td>
-            <td>{c.confirmed}{e.capacity ? ` / ${e.capacity}` : ""}</td><td>{c.waitlist || "—"}</td>
+          <tr key={e.id}><td><b>{e.title}</b><div className="small muted">{e.type} · {e.audience === "members" ? "members only" : "members and guests"}{e.perCompany ? ` · max ${e.perCompany}/company` : ""}</div></td><td className="nw">{fmtDate(e.date)}{e.date < today() && <div className="small muted">Past</div>}</td>
+            <td className="nw">{c.confirmed}{e.capacity ? ` / ${e.capacity}` : ""}{c.waitlist > 0 && <div className="small muted">+{c.waitlist} waitlist</div>}</td>
             <td><span className={`badge ${e.status === "Published" ? "green" : e.status === "Cancelled" ? "red" : ""}`}>{e.status}</span></td>
-            <td><div className="row" style={{ gap: 6, flexWrap: "nowrap" }}><button className="btn sm" onClick={() => setView(view === e.id ? null : e.id)}>Attendees</button><button className="btn sm" onClick={() => setEdit(e)}>Edit</button><button className="btn sm danger" onClick={() => { if (confirm("Delete this event?")) { deleteEvent(e.id); toast("Event deleted"); } }}>Delete</button></div></td></tr>); })}</tbody>
+            <td><div className="row" style={{ gap: 6, flexWrap: "nowrap" }}><button className="btn sm" onClick={() => setView(view === e.id ? null : e.id)}>{view === e.id ? "Hide attendees" : "Attendees"}</button><button className="btn sm" onClick={() => setEdit(e)}>Edit</button><button className="btn sm danger" onClick={() => { if (confirm("Delete this event?")) { deleteEvent(e.id); toast("Event deleted"); } }}>Delete</button></div></td></tr>); })}</tbody>
       </table></div>
-      {view && db.events.find(e => e.id === view) && <Attendees e={db.events.find(e => e.id === view)!} />}
+      {view && db.events.find(e => e.id === view) && <Reveal key={view}><Attendees e={db.events.find(e => e.id === view)!} /></Reveal>}
     </div>
   );
 }
@@ -124,10 +124,10 @@ export function InsightsAdmin({ toast }: { toast: Toast }) {
         <select className="select" style={{ width: "auto" }} aria-label="Section" value={kind} onChange={e => setKind(e.target.value as ContentKind)}><option value="">All sections</option>{KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
         {!edit && <button className="btn primary" onClick={() => setEdit(blankContent())}>+ New item</button>}
       </div>
-      {edit && <ContentForm init={edit} toast={toast} done={() => setEdit(null)} />}
+      {edit && <Reveal key={edit.id || "new"}><ContentForm init={edit} toast={toast} done={() => setEdit(null)} /></Reveal>}
       <div className="table-wrap"><table>
         <thead><tr><th>Title</th><th>Section</th><th>Date</th><th>Home</th><th>Status</th><th><span style={SR}>Actions</span></th></tr></thead>
-        <tbody>{list.map(c => <tr key={c.id}><td><b>{c.title}</b><div className="small muted">{c.source}{c.policyStatus ? ` · ${c.policyStatus}` : ""}</div></td><td>{KINDS.find(k => k[0] === c.kind)?.[1]}</td><td>{fmtDate(c.date)}</td>
+        <tbody>{list.map(c => <tr key={c.id}><td><b>{c.title}</b><div className="small muted">{c.source}{c.policyStatus ? ` · ${c.policyStatus}` : ""}</div></td><td>{KINDS.find(k => k[0] === c.kind)?.[1]}</td><td className="nw">{fmtDate(c.date)}</td>
           <td><input type="checkbox" aria-label="Feature on home" checked={c.featured} onChange={e => saveContent({ ...c, featured: e.target.checked })} /></td>
           <td><span className={`badge ${c.published ? "green" : ""}`}>{c.published ? "Published" : "Draft"}</span></td>
           <td><div className="row" style={{ gap: 6, flexWrap: "nowrap" }}><button className="btn sm" onClick={() => setEdit(c)}>Edit</button><button className="btn sm danger" onClick={() => { if (confirm("Delete?")) { deleteContent(c.id); toast("Deleted"); } }}>Delete</button></div></td></tr>)}</tbody>
@@ -181,13 +181,13 @@ export function PostsAdmin({ toast }: { toast: Toast }) {
       <h2 className="h3">RFPs</h2>
       <div className="table-wrap"><table>
         <thead><tr><th>Title</th><th>Buyer</th><th>Closes</th><th>Status</th><th><span style={SR}>Actions</span></th></tr></thead>
-        <tbody>{db.rfps.map(r => <tr key={r.id}><td><b>{r.title}</b></td><td>{r.buyer}</td><td>{fmtDate(r.closes)}</td><td><span className="badge">{r.status}</span>{r.hidden && <span className="badge red">Hidden</span>}</td>
+        <tbody>{db.rfps.map(r => <tr key={r.id}><td><b>{r.title}</b></td><td>{r.buyer}</td><td className="nw">{fmtDate(r.closes)}</td><td><span className="badge">{r.status}</span>{r.hidden && <span className="badge red">Hidden</span>}</td>
           <td><button className="btn sm" onClick={() => { updateRfp(r.id, { hidden: !r.hidden }); toast(r.hidden ? "Shown" : "Hidden"); }}>{r.hidden ? "Show" : "Hide"}</button></td></tr>)}</tbody>
       </table></div>
       <h2 className="h3">Jobs</h2>
       <div className="table-wrap"><table>
         <thead><tr><th>Title</th><th>Company</th><th>Posted</th><th>Expires</th><th><span style={SR}>Actions</span></th></tr></thead>
-        <tbody>{db.jobs.map(j => <tr key={j.id}><td><b>{j.title}</b>{j.hidden && <> <span className="badge red">Hidden</span></>}</td><td>{j.company}</td><td>{fmtDate(j.postedOn)}</td><td>{fmtDate(new Date(+new Date(j.postedOn) + 30 * 864e5).toISOString().slice(0, 10))}</td>
+        <tbody>{db.jobs.map(j => <tr key={j.id}><td><b>{j.title}</b>{j.hidden && <> <span className="badge red">Hidden</span></>}</td><td>{j.company}</td><td className="nw">{fmtDate(j.postedOn)}</td><td className="nw">{fmtDate(new Date(+new Date(j.postedOn) + 30 * 864e5).toISOString().slice(0, 10))}</td>
           <td><div className="row" style={{ gap: 6, flexWrap: "nowrap" }}><button className="btn sm" onClick={() => toggleJob(j.id)}>{j.hidden ? "Show" : "Hide"}</button><button className="btn sm danger" onClick={() => { deleteJob(j.id); toast("Removed"); }}>Remove</button></div></td></tr>)}</tbody>
       </table></div>
     </div>
@@ -216,7 +216,7 @@ export function Reports() {
       </div>
       <div className="table-wrap"><table>
         <thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>Waitlist</th><th>Attended</th></tr></thead>
-        <tbody>{[...db.events].sort((a, b) => b.date.localeCompare(a.date)).map(e => { const c = eventCounts(e); return <tr key={e.id}><td>{e.title}</td><td>{fmtDate(e.date)}</td><td>{c.confirmed}{e.capacity ? ` / ${e.capacity}` : ""}</td><td>{c.waitlist}</td><td>{e.registrations.filter(r => r.attended).length}</td></tr>; })}</tbody>
+        <tbody>{[...db.events].sort((a, b) => b.date.localeCompare(a.date)).map(e => { const c = eventCounts(e); return <tr key={e.id}><td>{e.title}</td><td className="nw">{fmtDate(e.date)}</td><td>{c.confirmed}{e.capacity ? ` / ${e.capacity}` : ""}</td><td>{c.waitlist}</td><td>{e.registrations.filter(r => r.attended).length}</td></tr>; })}</tbody>
       </table></div>
     </div>
   );

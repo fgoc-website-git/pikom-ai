@@ -246,6 +246,7 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       const u = db.users.find(x => x.id === args[0]); if (!u) return no("AX-404", "Person not found.");
       if (!(sup || (me.role === "main" && u.orgId === me.orgId && u.id !== me.id))) return deny;
       if (u.id === me.id) return no("AX-403", "You can't remove your own account here.");
+      if (isStaff(u) && !sup) return no("AX-403", "This person is a PIKOM admin. Ask a super admin to remove them.");
       return ok({ ...db, users: db.users.filter(x => x.id !== u.id), events: db.events.map(e => promote({ ...e, registrations: e.registrations.filter(r => r.userId !== u.id) })) }, `Removed ${u.name} (${u.email})`);
     }
     case "setMainHolder": {

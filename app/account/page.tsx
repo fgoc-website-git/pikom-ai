@@ -131,7 +131,7 @@ function TeamTab() {
           <tr key={u.id}>
             <td><b>{u.name}</b><div className="small muted">{u.jobTitle}</div></td><td>{u.email}</td>
             <td><span className={`badge ${u.role === "main" ? "blue" : ""}`}>{roleLabel(u.role)}</span></td>
-            <td>{fmtDate(u.createdOn)}</td><td>{u.lastSignIn || "—"}</td>
+            <td className="nw">{fmtDate(u.createdOn)}</td><td>{u.lastSignIn || "—"}</td>
             {isMain && <td>{u.id !== me!.id && <button className="btn sm danger" onClick={() => { if (confirm(`Remove ${u.name}? They lose access and their seat is freed.`)) removeUser(u.id); }}>Remove</button>}</td>}
           </tr>))}
         </tbody>

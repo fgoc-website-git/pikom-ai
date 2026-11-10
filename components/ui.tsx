@@ -76,7 +76,7 @@ export function Avatar({ name, logo, round, lg }: { name: string; logo?: string;
 }
 
 export function SeatDots({ used, limit }: { used: number; limit: number }) {
-  return <span className="row" style={{ gap: 8 }}><span className="seatdots" aria-hidden="true">{Array.from({ length: limit }, (_, i) => <i key={i} className={i < used ? "on" : ""} />)}</span><span className="small" style={{ fontWeight: 600 }}>{used} / {limit} seats</span></span>;
+  return <span className="row" style={{ gap: 8 }}><span className="seatdots" aria-hidden="true">{Array.from({ length: limit }, (_, i) => <i key={i} className={i < used ? "on" : ""} />)}</span><span className="small" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{used} / {limit} seats</span></span>;
 }
 
 export function useToast() {
@@ -110,3 +110,10 @@ export function Locked({ what = "details", inline }: { what?: string; inline?: b
 
 export const fmtDate = (d: string) => { if (!d) return "—"; const x = new Date(d); return isNaN(+x) ? d : x.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" }); };
 export const ago = (d: string) => { const days = Math.round((Date.now() - +new Date(d)) / 864e5); return days <= 0 ? "today" : days === 1 ? "1 day ago" : days < 7 ? `${days} days ago` : days < 14 ? "1 week ago" : `${Math.floor(days / 7)} weeks ago`; };
+
+/** Wrap a panel that opens in response to a click: it scrolls into view so the click visibly does something. */
+export function Reveal({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => { ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }); ref.current?.querySelector<HTMLElement>("input,select,textarea,button")?.focus({ preventScroll: true }); }, []);
+  return <div ref={ref} className="reveal">{children}</div>;
+}

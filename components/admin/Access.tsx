@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useStore, roleLabel, type Org } from "@/lib/store";
 import { MEMBER_TYPES, SEAT_LIMIT, COMPANY_CATEGORIES, type MemberType } from "@/lib/options";
-import { Field, ErrorBox, SeatDots, SelectOther, fmtDate } from "@/components/ui";
+import { Field, ErrorBox, SeatDots, SelectOther, fmtDate, Reveal } from "@/components/ui";
 
 const SR = { position: "absolute" as const, width: 1, height: 1, overflow: "hidden" };
 type Toast = (s: string) => void;
@@ -44,31 +44,31 @@ export function Companies({ toast }: { toast: Toast }) {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="row between">
-        <div className="row">
-          <input className="input" style={{ maxWidth: 300 }} aria-label="Search companies" placeholder="Search company or domain" value={q} onChange={e => setQ(e.target.value)} />
+        <div className="row" style={{ flex: "1 1 420px" }}>
+          <input className="input" style={{ flex: "1 1 220px", maxWidth: 340, width: "auto" }} aria-label="Search companies" placeholder="Search company or domain" value={q} onChange={e => setQ(e.target.value)} />
           <select className="select" style={{ width: "auto" }} aria-label="Filter" value={filter} onChange={e => setFilter(e.target.value)}>
             <option value="all">All companies ({db.orgs.length})</option><option value="nodomain">Domain still needed</option><option value="nomain">No main holder yet</option><option value="full">Seats full</option><option value="paused">Paused</option>
           </select>
         </div>
         {!adding && <button className="btn primary" onClick={() => setAdding(true)}>+ Whitelist a company</button>}
       </div>
-      {adding && <AddCompany toast={toast} onDone={() => setAdding(false)} />}
+      {adding && <Reveal><AddCompany toast={toast} onDone={() => setAdding(false)} /></Reveal>}
       <div className="table-wrap"><table>
-        <thead><tr><th>Company</th><th>Domain</th><th>Type</th><th>Seats</th><th>Main account holder</th><th>Status</th><th><span style={SR}>Open</span></th></tr></thead>
+        <thead><tr><th>Company</th><th>Domain</th><th>Seats</th><th>Main account holder</th><th><span style={SR}>Open</span></th></tr></thead>
         <tbody>{list.map(o => {
           const main = db.users.find(u => u.orgId === o.id && u.role === "main");
           return (
-            <tr key={o.id}>
-              <td><b>{o.name}</b><div className="small muted">Added {fmtDate(o.whitelistedOn)}</div></td>
-              <td>{o.domain ? `@${o.domain}` : <span className="badge red">Domain needed</span>}</td><td>{o.type.replace(" Member", "")}</td>
+            <tr key={o.id} className={open === o.id ? "on" : ""}>
+              <td><b>{o.name}</b>{o.status !== "active" && <> <span className="badge red">Paused</span></>}<div className="small muted">{o.type.replace(" Member", "")} · added {fmtDate(o.whitelistedOn)}</div></td>
+              <td>{o.domain ? `@${o.domain}` : <span className="badge red">Domain needed</span>}</td>
               <td><SeatDots used={seatsUsed(o.id)} limit={o.seatLimit} /></td>
               <td>{main ? main.name : o.mainEmail ? <span className="small">{o.mainEmail}<br /><span className="badge orange">Not registered yet</span></span> : <span className="badge">Not set</span>}</td>
-              <td>{o.status === "active" ? <span className="badge green">Active</span> : <span className="badge red">Paused</span>}</td>
-              <td><button className="btn sm" aria-expanded={open === o.id} onClick={() => setOpen(open === o.id ? null : o.id)}>{open === o.id ? "Close" : "Manage"}</button></td>
+                            <td><button className="btn sm" aria-expanded={open === o.id} onClick={() => setOpen(open === o.id ? null : o.id)}>{open === o.id ? "Close" : "Manage"}</button></td>
             </tr>);
         })}</tbody>
       </table></div>
-      {open && db.orgs.find(o => o.id === open) && <OrgPanel org={db.orgs.find(o => o.id === open)!} toast={toast} close={() => setOpen(null)} />}
+      {list.length === 0 && <div className="empty">No companies match.</div>}
+      {open && db.orgs.find(o => o.id === open) && <Reveal key={open}><OrgPanel org={db.orgs.find(o => o.id === open)!} toast={toast} close={() => setOpen(null)} /></Reveal>}
     </div>
   );
 }
@@ -82,7 +82,7 @@ function OrgPanel({ org, toast, close }: { org: Org; toast: Toast; close: () => 
   const [dom, setDom] = useState(org.domain);
   return (
     <div className="card hl stack" style={{ gap: 18 }}>
-      <div className="row between"><div><h2 className="h3">{org.name}</h2><span className="small muted">{org.type} · PIKOM no. {org.pikomNo || "—"} · renews {fmtDate(org.renewal)}</span></div><SeatDots used={users.length} limit={org.seatLimit} /></div>
+      <div className="row between"><div><span className="eyebrow">Managing company</span><h2 className="h3">{org.name}</h2><span className="small muted">{org.type} · PIKOM no. {org.pikomNo || "—"} · renews {fmtDate(org.renewal)}</span></div><div className="row"><SeatDots used={users.length} limit={org.seatLimit} /><button type="button" className="btn sm" onClick={close}>Close</button></div></div>
       <form className="row" style={{ alignItems: "flex-end" }} onSubmit={e => { e.preventDefault(); const r = updateOrg(org.id, { domain: dom }); if (!r.ok) setErr(r); else toast("Domain saved"); }}>
         <div style={{ flex: "1 1 260px" }}><Field label="Company email domain" value={dom} onChange={e => setDom(e.target.value)} placeholder="company.com.my" hint={org.domain ? "Changing this does not move existing accounts." : "Needed before anyone from this company can register."} /></div>
         <button className="btn">Save domain</button>
@@ -90,7 +90,7 @@ function OrgPanel({ org, toast, close }: { org: Org; toast: Toast; close: () => 
       <div className="table-wrap"><table>
         <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Last sign-in</th><th><span style={SR}>Actions</span></th></tr></thead>
         <tbody>{users.length === 0 ? <tr><td colSpan={6} className="muted">Nobody has registered from this company yet.</td></tr> : users.map(u => (
-          <tr key={u.id}><td><b>{u.name}</b><div className="small muted">{u.jobTitle}</div></td><td>{u.email}</td><td><span className={`badge ${u.role === "main" ? "blue" : ""}`}>{roleLabel(u.role)}</span></td><td>{fmtDate(u.createdOn)}</td><td>{u.lastSignIn || "—"}</td>
+          <tr key={u.id}><td><b>{u.name}</b><div className="small muted">{u.jobTitle}</div></td><td>{u.email}</td><td><span className={`badge ${u.role === "main" ? "blue" : ""}`}>{roleLabel(u.role)}</span></td><td className="nw">{fmtDate(u.createdOn)}</td><td>{u.lastSignIn || "—"}</td>
             <td><div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
               {u.role !== "main" && <button className="btn sm" onClick={() => { setMainHolder(org.id, u.email); setMainEmail(u.email); toast(`${u.name} is now main account holder`); }}>Make main holder</button>}
               <button className="btn sm danger" onClick={() => { if (confirm(`Remove ${u.name} from AI Xchange?`)) { removeUser(u.id); toast("Removed — seat freed"); } }}>Remove</button>
@@ -142,7 +142,7 @@ export function Individuals({ toast }: { toast: Toast }) {
         <thead><tr><th>Name</th><th>Email</th><th>Whitelisted</th><th>Renews</th><th>Status</th><th><span style={SR}>Actions</span></th></tr></thead>
         <tbody>{db.individuals.map(i => {
           const u = db.users.find(x => x.email === i.email);
-          return <tr key={i.email}><td><b>{i.name}</b></td><td>{i.email}</td><td>{fmtDate(i.whitelistedOn)}</td><td>{fmtDate(i.renewal)}</td><td>{u ? <span className="badge green">Registered</span> : <span className="badge orange">Not registered yet</span>}</td>
+          return <tr key={i.email}><td><b>{i.name}</b></td><td>{i.email}</td><td className="nw">{fmtDate(i.whitelistedOn)}</td><td className="nw">{fmtDate(i.renewal)}</td><td>{u ? <span className="badge green">Registered</span> : <span className="badge orange">Not registered yet</span>}</td>
             <td><button className="btn sm danger" onClick={() => { if (confirm(`Remove ${i.email}?`)) { removeIndividual(i.email); toast("Removed"); } }}>Remove</button></td></tr>;
         })}</tbody>
       </table></div>
@@ -163,8 +163,8 @@ export function People() {
   };
   return (
     <div className="stack" style={{ gap: 12 }}>
-      <div className="row between"><div className="row">
-        <input className="input" style={{ maxWidth: 300 }} aria-label="Search people" placeholder="Search name or email" value={q} onChange={e => setQ(e.target.value)} />
+      <div className="row between"><div className="row" style={{ flex: "1 1 420px" }}>
+        <input className="input" style={{ flex: "1 1 220px", maxWidth: 340, width: "auto" }} aria-label="Search people" placeholder="Search name or email" value={q} onChange={e => setQ(e.target.value)} />
         <select className="select" style={{ width: "auto" }} aria-label="Role" value={role} onChange={e => setRole(e.target.value)}><option value="">All roles</option>{(["main", "member", "individual", "guest"] as const).map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}</select>
       </div><button className="btn" onClick={csv}>Export to Excel (CSV)</button></div>
       <div className="table-wrap"><table>
