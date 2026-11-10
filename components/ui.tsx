@@ -72,7 +72,7 @@ export function initials(name: string) {
   return name.replace(/[()&.,]/g, "").split(/\s+/).filter(w => w && !/^(sdn|bhd|m)$/i.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
 export function Avatar({ name, logo, round, lg }: { name: string; logo?: string; round?: boolean; lg?: boolean }) {
-  return <span className={`avatar${round ? " round" : ""}${lg ? " lg" : ""}`} aria-hidden="true">{logo ? <img src={logo} alt="" /> : initials(name)}</span>;
+  return <span className={`avatar${round ? " round" : ""}${lg ? " lg" : ""}${logo ? " has-logo" : ""}`} aria-hidden="true">{logo ? <img src={logo} alt="" /> : initials(name)}</span>;
 }
 
 export function SeatDots({ used, limit }: { used: number; limit: number }) {

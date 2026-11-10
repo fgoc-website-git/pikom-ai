@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useStore, roleLabel, canManageContent } from "@/lib/store";
+import { useStore, roleLabel, canManageContent, isSuper } from "@/lib/store";
 import { shortName } from "@/lib/directory";
 import { Avatar } from "./ui";
 
@@ -17,12 +17,8 @@ export function Header() {
   return (
     <>
       <header className="site-head"><div className="wrap">
-        <Link href="/" className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-mark">AX</span>
-          <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.15 }}>
-            <span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 16 }}>AI Xchange Malaysia</span>
-            <span style={{ fontSize: 12, color: "var(--mut)" }}>A PIKOM chapter</span>
-          </span>
+        <Link href="/" className="brand" aria-label="AI Xchange Malaysia — a PIKOM chapter, home" onClick={() => setOpen(false)}>
+          <img src="/brand/ai-xchange-logo.png" alt="AI Xchange Malaysia — a PIKOM chapter" className="brand-logo" />
         </Link>
         <button className="btn sm menu-btn" aria-expanded={open} aria-controls="mainnav" onClick={() => setOpen(!open)}>Menu</button>
         <nav id="mainnav" aria-label="Main" className={`mainnav${open ? " open" : ""}`}>
@@ -30,7 +26,7 @@ export function Header() {
         </nav>
         {me ? (
           <div className="row" style={{ gap: 8 }}>
-            {canManageContent(me) && <Link className="btn sm dark" href="/admin">Admin</Link>}
+            {canManageContent(me) && <Link className="btn sm dark" href="/admin">{isSuper(me) ? "Super admin" : "PIKOM admin"}</Link>}
             <Link href="/account" className="row" style={{ gap: 8, padding: "4px 12px 4px 4px", border: "1px solid var(--line)", borderRadius: 999, color: "var(--ink)", flexWrap: "nowrap" }}>
               <Avatar name={me.name} round />
               <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
@@ -58,7 +54,10 @@ export function Footer() {
   return (
     <footer className="site-foot"><div className="wrap">
       <div className="stack" style={{ maxWidth: 380, gap: 8 }}>
-        <span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 17, color: "#fff" }}>AI Xchange Malaysia</span>
+        <div className="foot-logos">
+          <span className="chip-logo"><img src="/brand/ai-xchange-logo.png" alt="AI Xchange Malaysia" style={{ height: 44 }} /></span>
+          <a href="https://pikom.org.my" target="_blank" rel="noreferrer" className="chip-logo" style={{ padding: 0, overflow: "hidden" }}><img src="/brand/pikom-logo.jpg" alt="PIKOM — The National Tech Association of Malaysia" style={{ height: 60, display: "block" }} /></a>
+        </div>
         <span>An information and networking platform for members of PIKOM, The National Tech Association of Malaysia.</span>
       </div>
       <div className="stack" style={{ gap: 8 }}>

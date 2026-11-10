@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useStore, today, canPostJob, PAYING } from "@/lib/store";
 import { companies } from "@/lib/directory";
-import { fmtDate } from "@/components/ui";
+import { Avatar, fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
-import { MemberCarousel } from "@/components/MemberCarousel";
+import { Carousel } from "@/components/Carousel";
 
 export default function Home() {
   const { db, me, full } = useStore();
@@ -18,7 +18,7 @@ export default function Home() {
   const jobs = db.jobs.filter(j => !j.hidden).sort((a, b) => b.postedOn.localeCompare(a.postedOn)).slice(0, 4);
   const rfps = db.rfps.filter(r => r.status === "Open" && !r.hidden).slice(0, 3);
   const events = db.events.filter(e => e.status === "Published" && e.date >= today()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
-  const featured = db.content.filter(c => c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 4);
+  const featured = db.content.filter(c => c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 12);
   const people = db.users.filter(u => PAYING.includes(u.role)).length;
 
   return (
@@ -82,20 +82,24 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="wrap section">
-        <div className="section-head"><div><h2 className="h2">Insights &amp; policy</h2></div><Link href="/insights" className="more">All insights →</Link></div>
-        <div className="grid">{featured.map(c => (
-          <Link key={c.id} href={`/insights?tab=${c.kind}`} className="card stack" style={{ gap: 8, color: "var(--ink)" }}>
+      <Carousel title="Insights & policy" sub="Policy updates, PIKOM research and industry news." moreHref="/insights" moreLabel="All insights" label="insights">
+        {featured.map(c => (
+          <Link role="listitem" key={c.id} href={`/insights?tab=${c.kind}`} className="card stack mc-card" style={{ gap: 8, color: "var(--ink)" }}>
             <span className="small muted" style={{ fontWeight: 600 }}>{c.kind === "policy" ? "Policy & governance" : c.kind === "research" ? "PIKOM research" : "News"} · {fmtDate(c.date)}</span>
             <h3 className="h3">{c.title}</h3>{c.policyStatus && <span className="badge orange" style={{ alignSelf: "flex-start" }}>{c.policyStatus}</span>}
-            <p className="small muted" style={{ fontSize: 14 }}>{c.summary}</p>
-          </Link>))}</div>
-      </section>
+            <p className="small muted mc-about">{c.summary}</p>
+            <span className="small muted" style={{ marginTop: "auto" }}>{c.source}</span>
+          </Link>))}
+      </Carousel>
 
-      <section className="wrap section">
-        <div className="section-head"><div><h2 className="h2">Our members</h2><p>Verified PIKOM member companies on AI Xchange.</p></div><Link href="/members" className="more">All members →</Link></div>
-        <MemberCarousel items={carousel} />
-      </section>
+      <Carousel title="Our members" sub="Verified PIKOM member companies on AI Xchange." moreHref="/members" moreLabel="All members" label="member companies">
+        {carousel.map(c => (
+          <Link role="listitem" key={c.org.id} href={`/members/${c.slug}`} className="card stack mc-card" style={{ gap: 10, color: "var(--ink)" }}>
+            <div className="row" style={{ flexWrap: "nowrap" }}><Avatar name={c.name} logo={c.logo} /><span className="stack" style={{ gap: 0, minWidth: 0 }}><span style={{ fontWeight: 600 }}>{c.name}</span><span className="small" style={{ color: "var(--green)", fontWeight: 600 }}>Verified PIKOM member</span></span></div>
+            <p className="small muted mc-about">{c.tagline}</p>
+            {c.category && <span className="badge" style={{ alignSelf: "flex-start", marginTop: "auto" }}>{c.category}</span>}
+          </Link>))}
+      </Carousel>
     </>
   );
 }

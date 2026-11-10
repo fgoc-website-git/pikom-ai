@@ -140,7 +140,9 @@ td { padding: 12px 16px; border-top: 1px solid var(--soft); vertical-align: midd
 .site-head .wrap { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: center; justify-content: space-between; padding-top: 10px; padding-bottom: 10px; min-height: 64px; }
 .brand { display: flex; gap: 10px; align-items: center; color: var(--ink); }
 .brand:hover { text-decoration: none; color: var(--ink); }
-.brand-mark { width: 36px; height: 36px; border-radius: 9px; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-family: Manrope, Inter, system-ui, sans-serif; font-weight: 800; font-size: 15px; }
+.brand-logo { height: 46px; width: auto; display: block; }
+.foot-logos { display: flex; gap: 12px; align-items: center; }
+.foot-logos .chip-logo { background: #fff; border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; }
 .mainnav { display: flex; flex-wrap: wrap; gap: 2px; font-size: 14px; font-weight: 500; }
 .mainnav a { color: var(--text); padding: 8px 12px; border-radius: 8px; }
 .mainnav a:hover { background: var(--soft); text-decoration: none; color: var(--ink); }
@@ -180,8 +182,14 @@ tr.on > td { background: var(--blue-bg); }
 .empty { padding: 28px 20px; text-align: center; color: var(--mut); background: #fff; border: 1px dashed var(--line2); border-radius: var(--r2); }
 .nw { white-space: nowrap; }
 /* member carousel */
-.mc-track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, calc((100% - 48px) / 4)); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 4px 2px 10px; scrollbar-width: thin; }
+.mc-track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, calc((100% - 48px) / 4)); gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; padding: 4px 2px 6px; scrollbar-width: none; }
+.mc-track::-webkit-scrollbar { display: none; }
+.mc-track > * { scroll-snap-align: start; }
+.icon-btn { width: 36px; padding: 0; font-size: 16px; }
 .mc-card { scroll-snap-align: start; min-height: 190px; }
 .mc-about { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; }
 @media (max-width: 900px) { .mc-track { grid-auto-columns: minmax(240px, 46%); } }
 @media (max-width: 560px) { .mc-track { grid-auto-columns: 82%; } }
+.avatar.has-logo { width: 76px; height: 46px; background: #fff; border: 1px solid var(--line); padding: 5px; }
+.avatar.has-logo.lg { width: 120px; height: 72px; padding: 8px; }
+.brand-logo { height: 52px; }
