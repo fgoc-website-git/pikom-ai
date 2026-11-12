@@ -239,3 +239,48 @@ th .tip-btn { width: 15px; height: 15px; font-size: 10px; }
   .side-nav > div > .small.muted, .side-nav a > .small.muted { display: none; }
   .side-nav a { border: 1px solid var(--line); padding: 5px 10px; font-size: 13px; }
 }
+/* header v9: icon actions with labels that light up on hover */
+.site-head .wrap { flex-wrap: nowrap; gap: 16px; min-height: 68px; }
+.site-head .mainnav { margin: 0 auto; }
+.head-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.icon-link { position: relative; width: 40px; height: 40px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: var(--mut); background: transparent; border: 1px solid transparent; padding: 0; transition: color .15s, background .15s, border-color .15s; }
+.icon-link:hover, .icon-link:focus-visible { color: var(--blue); background: var(--blue-bg); text-decoration: none; }
+.icon-link.on { color: var(--blue); background: var(--blue-bg); border-color: #BFDBFE; }
+.icon-label { position: absolute; top: calc(100% + 6px); left: 50%; transform: translate(-50%, -4px); white-space: nowrap; font-size: 12px; font-weight: 600; color: #fff; background: var(--blue); padding: 4px 9px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; box-shadow: 0 4px 14px rgba(30,79,216,.3); z-index: 30; }
+.icon-link:hover .icon-label, .icon-link:focus-visible .icon-label { opacity: 1; transform: translate(-50%, 0); }
+.avatar-btn { width: 44px; height: 44px; margin-left: 4px; }
+.avatar-btn .avatar { width: 36px; height: 36px; font-size: 13px; transition: box-shadow .15s; }
+.avatar-btn:hover .avatar, .avatar-btn.on .avatar { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue); }
+.avatar-btn.on .icon-label { opacity: 0; }
+.acct { position: relative; }
+.acct-menu { position: absolute; right: 0; top: calc(100% + 10px); width: 270px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 40px rgba(15,23,42,.16); padding: 6px; z-index: 40; }
+.acct-head { display: flex; gap: 10px; align-items: flex-start; padding: 10px 10px 12px; border-bottom: 1px solid var(--soft); margin-bottom: 4px; }
+.acct-menu button { display: flex; width: 100%; gap: 10px; align-items: center; padding: 9px 10px; border: 0; background: none; border-radius: 8px; font-size: 14px; color: var(--ink); text-align: left; cursor: pointer; }
+.acct-menu button:hover, .acct-menu button:focus-visible { background: var(--blue-bg); color: #1E3A8A; }
+.acct-menu button.danger { color: var(--red); } .acct-menu button.danger:hover { background: var(--red-bg); }
+.banner { font-size: 13.5px; border-bottom: 1px solid; }
+.banner .wrap { display: flex; align-items: center; gap: 10px; padding-top: 7px; padding-bottom: 7px; }
+.banner .banner-text { flex: 1; min-width: 0; }
+.banner.orange { background: var(--orange-bg); border-color: #FED7AA; color: #7C2D12; } .banner.orange svg { color: #EA580C; }
+.banner.blue { background: var(--blue-bg); border-color: #BFDBFE; color: #1E3A8A; }
+.banner.red { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+.banner-x { border: 0; background: none; color: inherit; opacity: .6; width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.banner-x:hover { opacity: 1; background: rgba(0,0,0,.06); }
+@media (max-width: 960px) {
+  .site-head .wrap { flex-wrap: wrap; }
+  .site-head .mainnav { order: 3; margin: 0; }
+  .head-actions { margin-left: auto; }
+  .menu-btn { display: inline-flex; }
+}
+/* admin title row v9 */
+.admin-top { margin-bottom: 20px; align-items: center; }
+.admin-top h1 { display: flex; align-items: center; gap: 8px; }
+.admin-top h1 .tip-btn { width: 20px; height: 20px; font-size: 12px; }
+.admin-search { flex: 0 1 320px; }
+.admin-search .input { padding-left: 38px; }
+.admin-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--mut2); pointer-events: none; }
+.nav-role { display: flex; align-items: center; gap: 8px; padding: 4px 10px 10px; border-bottom: 1px solid var(--soft); margin-bottom: 4px; font-size: 13px; font-weight: 600; color: var(--ink); }
+.nav-role svg { color: var(--blue); }
+@media (max-width: 860px) { .nav-role { display: none; } }
+.icon-link.menu-btn { display: none; }
+@media (max-width: 960px) { .icon-link.menu-btn { display: inline-flex; } }

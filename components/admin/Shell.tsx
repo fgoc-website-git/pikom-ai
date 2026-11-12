@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import React, { useMemo, useState } from "react";
 import { useStore, isSuper, seatsUsedIn, type DB } from "@/lib/store";
 import { PAGE_HELP } from "@/lib/help";
-import { ErrorBox, MembersOnly } from "@/components/ui";
+import { ErrorBox, MembersOnly, Tip } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 import { todoCounts } from "./Overview";
 
 type Item = { href: string; label: string; key: string; superOnly?: boolean; badge?: (db: DB) => [number, boolean?] | null };
@@ -52,23 +53,16 @@ function Inner({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const sup = isSuper(me);
   const { item, helpKey } = current(path);
-  const [help, setHelp] = useState(false);
   const todo = todoCounts(db, sup);
   return (
     <div className="wrap page-head">
       <div className="admin-top">
-        <div className="stack" style={{ gap: 2 }}>
-          <span className="eyebrow">{sup ? "Super admin" : "PIKOM admin"} · site management</span>
-          <div className="row" style={{ gap: 10 }}>
-            <h1 className="h1">{item.label}</h1>
-            <button className="btn sm" aria-expanded={help} onClick={() => setHelp(!help)} title="What is this page for?">? Help</button>
-          </div>
-        </div>
+        <h1 className="h1">{item.label}{PAGE_HELP[helpKey] && <Tip text={PAGE_HELP[helpKey].join(" ")} label={`About ${item.label}`} />}</h1>
         <AdminSearch />
       </div>
-      {help && PAGE_HELP[helpKey] && <div className="help-panel stack" style={{ gap: 4, marginBottom: 16 }}>{PAGE_HELP[helpKey].map(t => <span key={t}>{t}</span>)}</div>}
       <div className="side-layout">
         <nav aria-label="Admin sections" className="card stack side-nav" style={{ gap: 14, padding: 14 }}>
+          <span className="nav-role"><Icon name="shield" size={18} />{sup ? "Super admin" : "PIKOM admin"}</span>
           {NAV.map(g => {
             const items = g.items.filter(i => sup || !i.superOnly);
             if (!items.length) return null;
@@ -114,6 +108,7 @@ function AdminSearch() {
   }, [q, db, sup]);
   return (
     <div className="admin-search" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false); }}>
+      <Icon name="search" size={18} />
       <input className="input" type="search" placeholder={sup ? "Search companies, people, events…" : "Search events and insights…"} aria-label="Search admin" value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} />
       {open && q.trim().length >= 2 && (
         <div className="results" role="listbox">
