@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { useStore, roleLabel, isSuper, canManageCompany, canEditCompany, MAX_COMPANY_ADMINS, COMPANY_ROLES, eventCounts, type Org, type CompanyProfile, type Role } from "@/lib/store";
+import { useStore, roleLabel, isSuper, canManageCompany, canEditCompany, settingsOf, COMPANY_ROLES, eventCounts, type Org, type CompanyProfile, type Role } from "@/lib/store";
 import { CAPABILITIES, COMPANY_CATEGORIES, INDUSTRIES_SERVED, STATES, EMPLOYEES } from "@/lib/options";
 import { slugify } from "@/lib/directory";
-import { Field, Area, SelectOther, MultiOther, ErrorBox, SeatDots, Avatar, fmtDate } from "@/components/ui";
+import { Field, Area, SelectOther, MultiOther, ErrorBox, SeatDots, Avatar, fmtDate, Tip, ask } from "@/components/ui";
+import { TIP } from "@/lib/help";
 
 type Toast = (s: string) => void;
 type Err = { code: string; msg: string } | null;
@@ -18,7 +19,8 @@ export const ROLE_HELP: Record<string, string> = {
 
 /* ---------------- People & seats ---------------- */
 export function CompanyPeople({ org, toast }: { org: Org; toast: Toast }) {
-  const { me, orgUsers, removeUser, setCompanyRole, addUserAsAdmin } = useStore();
+  const { db, me, orgUsers, removeUser, setCompanyRole, addUserAsAdmin } = useStore();
+  const MAX_COMPANY_ADMINS = settingsOf(db).maxAdmins;
   const users = orgUsers(org.id);
   const manage = canManageCompany(me, org.id);
   const admins = users.filter(u => u.role === "main").length;
@@ -33,13 +35,13 @@ export function CompanyPeople({ org, toast }: { org: Org; toast: Toast }) {
           <SeatDots used={users.length} limit={org.seatLimit} />
         </div>
         <div className="stack small muted" style={{ gap: 4, maxWidth: 520 }}>
-          <span>Up to {org.seatLimit} people. {MAX_COMPANY_ADMINS} company admins at most; any number of content admins within the seats.</span>
+          <span>Up to {org.seatLimit} people. {MAX_COMPANY_ADMINS} company admins at most <Tip text={TIP.companyAdmin} />; any number of content admins <Tip text={TIP.contentAdmin} /> within the seats.</span>
           {org.domain && <span>Anyone with an @{org.domain} email can join until the seats are used.</span>}
         </div>
       </div>
       {err && <ErrorBox code={err.code} msg={err.msg} />}
       <div className="table-wrap"><table>
-        <thead><tr><th>Person</th><th>Role</th><th>Activity</th>{manage && <th><span style={SR}>Actions</span></th>}</tr></thead>
+        <thead><tr><th>Person</th><th>Role <Tip text={TIP.companyRoles} /></th><th>Activity</th>{manage && <th><span style={SR}>Actions</span></th>}</tr></thead>
         <tbody>{users.length === 0 ? <tr><td colSpan={4} className="muted">Nobody has registered from this company yet.</td></tr> : users.map(u => (
           <tr key={u.id}>
             <td><div className="row" style={{ flexWrap: "nowrap", gap: 10 }}><Avatar name={u.name} round /><div style={{ minWidth: 0 }}><b>{u.name}</b>{u.staff && <span className="badge dark" style={{ marginLeft: 6 }}>{u.staff === "super" ? "Super admin" : "PIKOM admin"}</span>}<div className="small muted">{u.jobTitle || "—"}</div><div className="small" style={{ wordBreak: "break-all" }}>{u.email}</div></div></div></td>
@@ -51,7 +53,7 @@ export function CompanyPeople({ org, toast }: { org: Org; toast: Toast }) {
                 : <span className={`badge ${u.role === "main" ? "blue" : u.role === "editor" ? "green" : ""}`}>{roleLabel(u.role)}</span>}
             </td>
             <td className="small"><div>Joined {fmtDate(u.createdOn)}</div><div className="muted">Last sign-in {u.lastSignIn || "—"}</div></td>
-            {manage && <td>{u.id !== me!.id && !(u.staff && !isSuper(me)) && <button className="btn sm danger" onClick={() => { if (confirm(`Remove ${u.name}? They lose access and the seat is freed.`)) { setErr(null); removeUser(u.id); toast("Removed — seat freed"); } }}>Remove</button>}</td>}
+            {manage && <td>{u.id !== me!.id && !(u.staff && !isSuper(me)) && <button className="btn sm danger" onClick={async () => { if (await ask(`Remove ${u.name}?`, { detail: "They lose access and the seat is freed." })) { setErr(null); removeUser(u.id); } }}>Remove</button>}</td>}
           </tr>))}
         </tbody>
       </table></div>
@@ -61,7 +63,7 @@ export function CompanyPeople({ org, toast }: { org: Org; toast: Toast }) {
           <div className="form-grid">
             <Field label="Work email" type="email" required placeholder={`name@${org.domain || "company.com.my"}`} value={add.email} onChange={e => setAdd({ ...add, email: e.target.value })} />
             <Field label="Name" value={add.name} onChange={e => setAdd({ ...add, name: e.target.value })} />
-            <label className="field">Role<select className="select" value={add.role} onChange={e => setAdd({ ...add, role: e.target.value as Role })}>{COMPANY_ROLES.map(r => <option key={r} value={r} disabled={r === "main" && admins >= MAX_COMPANY_ADMINS}>{roleLabel(r)}</option>)}</select><span className="hint">{ROLE_HELP[add.role]}</span></label>
+            <label className="field"><span className="lbl">Role<Tip text={TIP.companyRoles} /></span><select className="select" value={add.role} onChange={e => setAdd({ ...add, role: e.target.value as Role })}>{COMPANY_ROLES.map(r => <option key={r} value={r} disabled={r === "main" && admins >= MAX_COMPANY_ADMINS}>{roleLabel(r)}</option>)}</select><span className="hint">{ROLE_HELP[add.role]}</span></label>
           </div>
           <div><button className="btn primary" disabled={!org.domain}>Add colleague</button>{!org.domain && <span className="small muted" style={{ marginLeft: 10 }}>Set the email domain first.</span>}</div>
           <p className="small muted">They get the temporary password <b>demo1234</b> and should change it after signing in.</p>
@@ -133,7 +135,7 @@ export function CompanyPosts({ org, toast }: { org: Org; toast: Toast }) {
       {jobs.length === 0 ? <div className="empty">No job posts.</div> : jobs.map(j => (
         <div key={j.id} className="card tight row between">
           <div className="stack" style={{ gap: 2 }}><b>{j.title}</b><span className="small muted">{j.location} · {j.mode} · posted {fmtDate(j.postedOn)}{j.postedBy ? ` by ${j.postedBy}` : ""}{j.hidden ? " · hidden by PIKOM" : ""}</span></div>
-          <div className="row">{j.linkedinUrl && <a className="btn sm" href={j.linkedinUrl} target="_blank" rel="noreferrer">LinkedIn post</a>}{edit && <button className="btn sm danger" onClick={() => { if (confirm(`Close “${j.title}”?`)) { deleteJob(j.id); toast("Job closed"); } }}>Close post</button>}</div>
+          <div className="row">{j.linkedinUrl && <a className="btn sm" href={j.linkedinUrl} target="_blank" rel="noreferrer">LinkedIn post</a>}{edit && <button className="btn sm danger" onClick={async () => { if (await ask(`Close “${j.title}”?`, { ok: "Close post" })) deleteJob(j.id); }}>Close post</button>}</div>
         </div>))}
     </div>
   );
@@ -171,12 +173,12 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
       <div className="grid2">
         <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(updateOrg(org.id, { domain: dom }), "Domain saved"); }}>
           <h3 className="h3">Email domain</h3>
-          <Field label="Company email domain" value={dom} onChange={e => setDom(e.target.value)} placeholder="company.com.my" hint={org.domain ? "Changing this does not move existing accounts." : "Needed before anyone from this company can register."} />
+          <Field label="Company email domain" tip={TIP.domain} value={dom} onChange={e => setDom(e.target.value)} placeholder="company.com.my" hint={org.domain ? "Changing this does not move existing accounts." : "Needed before anyone from this company can register."} />
           <div><button className="btn primary">Save domain</button></div>
         </form>
         <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(setMainHolder(org.id, adminEmail), "Saved"); }}>
           <h3 className="h3">First company admin</h3>
-          <Field label="Admin's work email" type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder={`name@${org.domain || "company.com.my"}`} hint="The person PIKOM names. If they haven't registered, they become admin when they do." />
+          <Field label="Admin's work email" tip={TIP.firstAdmin} type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder={`name@${org.domain || "company.com.my"}`} hint="The person PIKOM names. If they haven't registered, they become admin when they do." />
           <div><button className="btn primary">Save admin</button></div>
         </form>
       </div>
@@ -184,19 +186,19 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
         <h3 className="h3">PIKOM membership</h3>
         <div className="form-grid">
           <Field label="Registered company name" value={meta.name} onChange={e => setMeta({ ...meta, name: e.target.value })} />
-          <Field label="PIKOM membership no." value={meta.pikomNo} onChange={e => setMeta({ ...meta, pikomNo: e.target.value })} />
-          <Field label="Renewal date" type="date" value={meta.renewal} onChange={e => setMeta({ ...meta, renewal: e.target.value })} />
+          <Field label="PIKOM membership no." tip={TIP.pikomNo} value={meta.pikomNo} onChange={e => setMeta({ ...meta, pikomNo: e.target.value })} />
+          <Field label="Renewal date" tip={TIP.renewal} type="date" value={meta.renewal} onChange={e => setMeta({ ...meta, renewal: e.target.value })} />
         </div>
         <div><button className="btn primary">Save membership details</button></div>
       </form>
       <div className="card stack" style={{ gap: 12 }}>
-        <h3 className="h3">Access</h3>
+        <h3 className="h3">Access <Tip text={TIP.pause} /></h3>
         <p className="small muted">Pause access while a renewal is pending: nobody from this company can sign in until you restore it. Removing the company deletes its {n} account{n === 1 ? "" : "s"} and its job posts.</p>
         <div className="row">
           {org.status === "active"
             ? <button className="btn" onClick={() => save(updateOrg(org.id, { status: "suspended" }), "Access paused")}>Pause access</button>
             : <button className="btn primary" onClick={() => save(updateOrg(org.id, { status: "active" }), "Access restored")}>Restore access</button>}
-          <button className="btn danger" onClick={() => { if (confirm(`Remove ${org.name} from AI Xchange? It leaves the directory and all ${n} accounts are deleted.`)) { removeOrg(org.id); toast("Company removed"); onRemoved(); } }}>Remove company</button>
+          <button className="btn danger" onClick={async () => { if (await ask(`Remove ${org.name} from AI Xchange?`, { detail: `It leaves the directory and its ${n} account${n === 1 ? "" : "s"} and job posts are removed.` })) { removeOrg(org.id); onRemoved(); } }}>Remove company</button>
         </div>
       </div>
     </div>

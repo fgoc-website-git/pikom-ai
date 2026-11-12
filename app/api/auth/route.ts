@@ -25,8 +25,8 @@ export async function POST(req: Request) {
           const r = registerUser(d, { email: str(b.email), name: str(b.name, 120), password: str(b.password, 200), jobTitle: str(b.jobTitle, 120), consent: !!b.consent, asGuest: !!b.asGuest, company: str(b.company, 120) }, Array.isArray(b.ids) ? b.ids.filter((x: unknown) => typeof x === "string" && /^[a-z0-9]{8}$/.test(x as string)).slice(0, 2) : []);
           return { db: r.result.ok ? r.db : d, out: { result: r.result, id: r.user?.id } };
         });
-        if (out.result.ok && out.id) await setSession(out.id);
-        return NextResponse.json({ result: out.result, ...payload(db, meFrom(db, out.result.ok ? out.id! : await sessionUserId())) });
+        if (out.result.ok && out.id) await setSession(out.id, 0);
+        return NextResponse.json({ result: out.result, ...payload(db, meFrom(db, out.result.ok ? { id: out.id!, sv: 0 } : await sessionUserId())) });
       }
       case "signin": {
         const email = str(b.email).trim().toLowerCase();
@@ -36,8 +36,9 @@ export async function POST(req: Request) {
         const org = u.orgId ? db0.orgs.find(o => o.id === u.orgId) : null;
         if (org?.status === "suspended") return NextResponse.json({ result: { ok: false, code: ERR.SUSPENDED, msg: `Access for ${org.name} is paused. Please contact the PIKOM secretariat.` }, ...payload(db0, null) });
         const { db } = await mutate(d => ({ db: { ...d, users: d.users.map(x => x.id === u.id ? { ...x, lastSignIn: stamp() } : x) } as DB, out: null }));
-        await setSession(u.id);
-        return NextResponse.json({ result: { ok: true }, ...payload(db, meFrom(db, u.id)) });
+        const sess = { id: u.id, sv: u.sv || 0 };
+        await setSession(sess.id, sess.sv);
+        return NextResponse.json({ result: { ok: true }, ...payload(db, meFrom(db, sess)) });
       }
       case "signout": {
         await setSession(null);
@@ -50,9 +51,18 @@ export async function POST(req: Request) {
         if (!(await verifyPassword(str(b.current), me.password))) { await wait(600); return NextResponse.json({ result: { ok: false, code: ERR.BAD_LOGIN, msg: "Current password is incorrect." } }); }
         const next = str(b.next, 200);
         if (next.length < 8) return NextResponse.json({ result: { ok: false, code: "AX-107", msg: "New password must be at least 8 characters." } });
-        const h = await hashPassword(next);
-        const { db } = await mutate(d => ({ db: { ...d, users: d.users.map(x => x.id === me.id ? { ...x, password: h } : x) } as DB, out: null }));
-        return NextResponse.json({ result: { ok: true, msg: "Password updated." }, ...payload(db, meFrom(db, me.id)) });
+        const h = await hashPassword(next); const sv = (me.sv || 0) + 1;
+        const { db } = await mutate(d => ({ db: { ...d, users: d.users.map(x => x.id === me.id ? { ...x, password: h, sv } : x) } as DB, out: null }));
+        await setSession(me.id, sv);
+        return NextResponse.json({ result: { ok: true, msg: "Password updated. You've been signed out on other devices." }, ...payload(db, meFrom(db, { id: me.id, sv })) });
+      }
+      case "signoutAll": {
+        const db0 = await load(); const me = meFrom(db0, await sessionUserId());
+        if (!me) return NextResponse.json({ result: { ok: false, code: "AX-401", msg: "Please sign in again." } });
+        const sv = (me.sv || 0) + 1;
+        const { db } = await mutate(d => ({ db: { ...d, users: d.users.map(x => x.id === me.id ? { ...x, sv } : x) } as DB, out: null }));
+        await setSession(me.id, sv);
+        return NextResponse.json({ result: { ok: true, msg: "Signed out on all other devices." }, ...payload(db, meFrom(db, { id: me.id, sv })) });
       }
     }
     return NextResponse.json({ error: "Bad request" }, { status: 400 });

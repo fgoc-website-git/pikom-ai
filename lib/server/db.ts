@@ -2,7 +2,7 @@ import "server-only";
 import { Pool } from "pg";
 import { promises as fs } from "fs";
 import path from "path";
-import { seed, type DB } from "../engine";
+import { seed, normalize, type DB } from "../engine";
 import { hashPassword } from "./auth";
 
 // The whole site's data is one JSON document in Supabase Postgres (table ax_state), changed inside a
@@ -30,7 +30,7 @@ async function ensureTable() {
 }
 
 async function freshSeed(): Promise<DB> {
-  const d = seed();
+  const d = normalize(seed());
   return { ...d, users: await Promise.all(d.users.map(async u => ({ ...u, password: await hashPassword(u.password) }))) };
 }
 /** Hash any password that arrived in plain text (new accounts, temporary passwords). */
@@ -43,11 +43,11 @@ const FILE = path.join(process.cwd(), ".data", "state.json");
 
 export async function load(): Promise<DB> {
   if (!URL_) {
-    try { return JSON.parse(await fs.readFile(FILE, "utf8")); } catch { const d = await freshSeed(); await saveFile(d); return d; }
+    try { return normalize(JSON.parse(await fs.readFile(FILE, "utf8"))); } catch { const d = await freshSeed(); await saveFile(d); return d; }
   }
   await ensureTable();
   const r = await getPool().query("select data from public.ax_state where id = 'main'");
-  if (r.rows[0]) return r.rows[0].data as DB;
+  if (r.rows[0]) return normalize(r.rows[0].data as DB);
   return mutate(async d => ({ db: d, out: null })).then(x => x.db);
 }
 async function saveFile(d: DB) { await fs.mkdir(path.dirname(FILE), { recursive: true }); await fs.writeFile(FILE, JSON.stringify(d)); }
@@ -57,7 +57,7 @@ let fileLock: Promise<unknown> = Promise.resolve();
 export async function mutate<T>(fn: (d: DB) => Promise<{ db: DB; out: T }> | { db: DB; out: T }): Promise<{ db: DB; out: T }> {
   if (!URL_) {
     const run = fileLock.then(async () => {
-      let d: DB; try { d = JSON.parse(await fs.readFile(FILE, "utf8")); } catch { d = await freshSeed(); }
+      let d: DB; try { d = normalize(JSON.parse(await fs.readFile(FILE, "utf8"))); } catch { d = await freshSeed(); }
       const r = await fn(d); const nd = await hashNew(r.db); await saveFile(nd); return { db: nd, out: r.out };
     });
     fileLock = run.catch(() => {}); return run;
@@ -71,9 +71,10 @@ export async function mutate<T>(fn: (d: DB) => Promise<{ db: DB; out: T }> | { d
       await c.query("insert into public.ax_state (id, data) values ('main', $1) on conflict (id) do nothing", [JSON.stringify(await freshSeed())]);
       row = await c.query("select data from public.ax_state where id = 'main' for update");
     }
-    const r = await fn(row.rows[0].data as DB);
+    const r0 = normalize(row.rows[0].data as DB);
+    const r = await fn(r0);
     const nd = await hashNew(r.db);
-    if (nd !== row.rows[0].data) await c.query("update public.ax_state set data = $1, version = version + 1, updated_at = now() where id = 'main'", [JSON.stringify(nd)]);
+    if (nd !== r0) await c.query("update public.ax_state set data = $1, version = version + 1, updated_at = now() where id = 'main'", [JSON.stringify(nd)]);
     await c.query("commit");
     return { db: nd, out: r.out };
   } catch (e) { await c.query("rollback").catch(() => {}); throw e; }

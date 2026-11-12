@@ -1,8 +1,9 @@
 "use client";
+import { TIP } from "@/lib/help";
 import Link from "next/link";
 import { useState } from "react";
 import { useStore, eventCounts, fullAccess, today, type PEvent } from "@/lib/store";
-import { useToast, fmtDate, ErrorBox } from "@/components/ui";
+import { useToast, fmtDate, ErrorBox , Tip } from "@/components/ui";
 
 export function icsFor(e: PEvent) {
   const d = e.date.replace(/-/g, "");
@@ -24,7 +25,7 @@ export function EventCard({ e }: { e: PEvent }) {
   const allowed = !membersOnly || fullAccess(me);
   return (
     <article className="card stack" style={{ gap: 10 }}>
-      <div className="row" style={{ gap: 6 }}>{typeBadge(e.type)}{membersOnly ? <span className="badge">Members only</span> : <span className="badge">Open to all</span>}{e.status === "Cancelled" && <span className="badge red">Cancelled</span>}</div>
+      <div className="row" style={{ gap: 6 }}>{typeBadge(e.type)}{membersOnly ? <span className="badge">Members only <Tip text={TIP.audience} /></span> : <span className="badge">Open to all <Tip text={TIP.audience} /></span>}{e.status === "Cancelled" && <span className="badge red">Cancelled</span>}</div>
       <span className="small" style={{ fontWeight: 600, color: "var(--blue)" }}>{fmtDate(e.date)} · {e.time}</span>
       <h2 className="h3">{e.title}</h2>
       <p className="small muted" style={{ fontSize: 14 }}>{e.description}</p>
@@ -32,7 +33,7 @@ export function EventCard({ e }: { e: PEvent }) {
         <dt>Host</dt><dd>{e.host || "PIKOM"}</dd>
         <dt>Where</dt><dd>{e.type === "Online" ? "Online" : e.venue}</dd>
         <dt>Price</dt><dd>{e.price}</dd>
-        {!past && <><dt>Seats</dt><dd>{left == null ? "No limit" : left > 0 ? `${left} of ${e.capacity} left` : `Full · ${waitlist} on waitlist`}{e.perCompany ? ` · max ${e.perCompany} per company` : ""}</dd></>}
+        {!past && <><dt>Seats <Tip text={TIP.capacity} /></dt><dd>{left == null ? "No limit" : left > 0 ? `${left} of ${e.capacity} left` : `Full · ${waitlist} on waitlist`}{e.perCompany ? ` · max ${e.perCompany} per company` : ""}</dd></>}
         {past && <><dt>Attended</dt><dd>{confirmed} registered</dd></>}
       </dl>
       {past ? (e.materials ? (fullAccess(me) ? <span className="badge green" style={{ alignSelf: "flex-start" }}>{e.materials}</span> : <span className="badge" style={{ alignSelf: "flex-start" }}>Slides & recording: members only</span>) : null)

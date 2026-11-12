@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
 import { Header, Footer } from "@/components/Shell";
+import { ConfirmHost, UndoBar } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: { default: "AI Xchange Malaysia — a PIKOM chapter", template: "%s | AI Xchange Malaysia" },
@@ -19,6 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main id="main">{children}</main>
           <Footer />
+          <ConfirmHost />
+          <UndoBar />
         </StoreProvider>
       </body>
     </html>

@@ -15,16 +15,17 @@ const COOKIE = "ax_session";
 const DAYS = 14;
 const sign = (s: string) => createHmac("sha256", SECRET).update(s).digest("base64url");
 
-export async function sessionUserId(): Promise<string | null> {
+export type Session = { id: string; sv: number };
+export async function sessionUserId(): Promise<Session | null> {
   const v = (await cookies()).get(COOKIE)?.value; if (!v) return null;
-  const [id, exp, sig] = v.split("."); if (!id || !exp || !sig) return null;
-  const good = sign(`${id}.${exp}`);
+  const [id, sv, exp, sig] = v.split("."); if (!id || !sv || !exp || !sig) return null;
+  const good = sign(`${id}.${sv}.${exp}`);
   if (good.length !== sig.length || !timingSafeEqual(Buffer.from(good), Buffer.from(sig))) return null;
-  return Number(exp) > Date.now() ? id : null;
+  return Number(exp) > Date.now() ? { id, sv: Number(sv) } : null;
 }
-export async function setSession(id: string | null) {
+export async function setSession(id: string | null, sv = 0) {
   const jar = await cookies();
   if (!id) { jar.delete(COOKIE); return; }
   const exp = String(Date.now() + DAYS * 864e5);
-  jar.set(COOKIE, `${id}.${exp}.${sign(`${id}.${exp}`)}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: DAYS * 86400 });
+  jar.set(COOKIE, `${id}.${sv}.${exp}.${sign(`${id}.${sv}.${exp}`)}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: DAYS * 86400 });
 }

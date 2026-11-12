@@ -7,6 +7,11 @@ import { MEMBERS, CATS } from "./data";
 export type Role = "superadmin" | "contentadmin" | "main" | "editor" | "member" | "individual" | "guest";
 export const PAYING: Role[] = ["main", "editor", "member", "individual"];
 export const MAX_COMPANY_ADMINS = 2;
+export interface Settings { memberCompaniesStat: string; companiesStat: string; secretariatEmail: string; secretariatPhone: string; defaultSeatLimit: number; maxAdmins: number; }
+export const DEFAULT_SETTINGS: Settings = { memberCompaniesStat: "2,000+", companiesStat: "157", secretariatEmail: "", secretariatPhone: "", defaultSeatLimit: 5, maxAdmins: 2 };
+export interface Notify { eventReminders: boolean; rfpReplies: boolean; newMembers: boolean; }
+export type TrashKind = "user" | "org" | "event" | "content" | "job" | "individual";
+export interface TrashItem { id: string; kind: TrashKind; label: string; at: string; by: string; orgId?: string | null; data: any; }
 export const STAFF: Role[] = ["superadmin", "contentadmin"];
 /** Full access = paying members and PIKOM staff. Guests and visitors see listings only. */
 export const isSuper = (u: User | null) => !!u && (u.role === "superadmin" || u.staff === "super");
@@ -38,6 +43,10 @@ export interface User {
   /** PIKOM admin rights held on top of a member account (e.g. a member who also runs the site). */
   staff?: "super" | "content";
   createdOn: string; lastSignIn?: string;
+  /** Directory privacy (default shown) and email preferences. */
+  showPhone?: boolean; showLinkedin?: boolean; notify?: Notify;
+  /** Bumped by "sign out everywhere" / password change; old sessions stop working. */
+  sv?: number;
 }
 export interface Job {
   id: string; title: string; orgId: string | null; company: string; category: string; type: string;
@@ -65,7 +74,13 @@ export interface LogEntry { at: string; who: string; what: string; }
 export interface DB {
   orgs: Org[]; individuals: Individual[]; users: User[]; jobs: Job[]; rfps: Rfp[]; events: PEvent[];
   content: Content[]; announcements: Announcement[]; spotlight: string[]; log: LogEntry[];
+  settings?: Settings; trash?: TrashItem[];
 }
+/** Fill in fields added after data was first saved. */
+export function normalize(d: DB): DB {
+  return { ...d, settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) }, trash: d.trash || [] };
+}
+export const settingsOf = (d: DB): Settings => ({ ...DEFAULT_SETTINGS, ...(d.settings || {}) });
 
 export const ERR = {
   NOT_WHITELISTED: "AX-101", SEATS_FULL: "AX-102", ALREADY_REGISTERED: "AX-103", PUBLIC_EMAIL: "AX-104",
@@ -163,7 +178,7 @@ export function seed(): DB {
   };
 }
 
-export type Result = { ok: true; msg?: string } | { ok: false; code: string; msg: string };
+export type Result = { ok: true; msg?: string; undo?: string } | { ok: false; code: string; msg: string };
 export type Check = (Result & { kind?: "org" | "individual" | "guest"; org?: Org });
 
 export function eventCounts(e: PEvent) {
@@ -209,7 +224,7 @@ export function registerUser(db: DB, d: { email: string; name: string; password:
   if (d.password.length < 8) return { db, result: { ok: false, code: "AX-107", msg: "Password must be at least 8 characters." } };
   if (!d.name.trim()) return { db, result: { ok: false, code: "AX-109", msg: "Please enter your name." } };
   const org = chk.ok && chk.kind === "org" ? chk.org! : null;
-  const role: Role = guestOk ? "guest" : org ? (org.mainEmail === email && adminsOf(db, org.id).length < MAX_COMPANY_ADMINS ? "main" : "member") : "individual";
+  const role: Role = guestOk ? "guest" : org ? (org.mainEmail === email && adminsOf(db, org.id).length < settingsOf(db).maxAdmins ? "main" : "member") : "individual";
   const user: User = { id: uid(), email, name: d.name.trim().slice(0, 120), password: d.password, role, orgId: org?.id || null, jobTitle: (d.jobTitle || "").slice(0, 120), phone: "", linkedin: "", bio: "", interests: [], company: d.company?.slice(0, 120), createdOn: today(), lastSignIn: stamp() };
   const what = `${user.name} registered as ${role === "guest" ? "a guest" : org ? `${role === "main" ? "company admin" : "member"} of ${org.domain} (${seatsUsedIn(db, org.id) + 1}/${org.seatLimit})` : "an Individual Member"}`;
   return { db: addLog({ ...db, users: [...db.users, user] }, user.name, what), result: { ok: true }, user };
@@ -225,12 +240,12 @@ function promote(e: PEvent): PEvent {
 }
 
 const DENY: Result = { ok: false, code: "AX-403", msg: "You don't have permission to do that." };
-const SELF_FIELDS = ["name", "jobTitle", "phone", "linkedin", "bio", "interests", "company"] as const;
+const SELF_FIELDS = ["name", "jobTitle", "phone", "linkedin", "bio", "interests", "company", "showPhone", "showLinkedin", "notify"] as const;
 const PROFILE_FIELDS = ["about", "website", "category", "capabilities", "industries", "state", "employees", "phone", "linkedin", "logo"] as const;
 const ORG_FIELDS = ["domain", "name", "type", "pikomNo", "mainEmail", "seatLimit", "status", "renewal"] as const;
 const pick = <T extends object>(o: any, keys: readonly string[]): Partial<T> => Object.fromEntries(Object.entries(o || {}).filter(([k]) => keys.includes(k))) as Partial<T>;
 
-export const ACTIONS = ["updateMe", "updateOrgProfile", "removeUser", "setMainHolder", "setCompanyRole", "addOrg", "updateOrg", "removeOrg", "addIndividual", "removeIndividual", "addUserAsAdmin", "addStaff", "removeStaff", "postJob", "deleteJob", "toggleJob", "postRfp", "updateRfp", "saveEvent", "deleteEvent", "registerEvent", "cancelEvent", "markAttended", "saveContent", "deleteContent", "saveAnnouncement", "deleteAnnouncement", "setSpotlight"] as const;
+export const ACTIONS = ["updateMe", "updateOrgProfile", "removeUser", "setMainHolder", "setCompanyRole", "addOrg", "updateOrg", "removeOrg", "addIndividual", "removeIndividual", "addUserAsAdmin", "addStaff", "removeStaff", "postJob", "deleteJob", "toggleJob", "postRfp", "updateRfp", "saveEvent", "deleteEvent", "registerEvent", "cancelEvent", "markAttended", "saveContent", "deleteContent", "saveAnnouncement", "deleteAnnouncement", "setSpotlight", "restore", "importOrgs", "updateSettings", "resetPassword"] as const;
 export type ActionName = typeof ACTIONS[number];
 
 /** Runs one action as `me`. Pure: returns the new data and the result. Permission checks live here,
@@ -238,7 +253,12 @@ export type ActionName = typeof ACTIONS[number];
 export function act(db: DB, me: User | null, name: ActionName, args: any[], ids: string[] = []): { db: DB; result: Result } {
   POOL = [...ids];
   if (!me) return { db, result: { ok: false, code: "AX-401", msg: "Please sign in first." } };
-  const ok = (d: DB, what: string | null, msg?: string) => ({ db: what ? addLog(d, me.name, what) : d, result: { ok: true, msg } as Result });
+  const ok = (d: DB, what: string | null, msg?: string, undo?: string) => ({ db: what ? addLog(d, me.name, what) : d, result: { ok: true, msg, undo } as Result });
+  /** Keep a removed item for 30 days so it can be restored. Returns the new data and the trash id. */
+  const bin = (d: DB, kind: TrashKind, label: string, data: any, orgId?: string | null): [DB, string] => {
+    const id = uid(); const cutoff = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+    return [{ ...d, trash: [{ id, kind, label, at: stamp(), by: me.name, orgId, data }, ...(d.trash || []).filter(t => t.at.slice(0, 10) >= cutoff)].slice(0, 100) }, id];
+  };
   const no = (code: string, msg: string) => ({ db, result: { ok: false, code, msg } as Result });
   const deny = { db, result: DENY };
   const sup = isSuper(me), staff = isStaff(me), full = fullAccess(me);
@@ -260,7 +280,9 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (u.id === me.id) return no("AX-403", "You can't remove your own account here.");
       if (u.role === "main" && u.orgId && adminsOf(db, u.orgId).length <= 1 && !sup) return no("AX-111", "A company needs at least one admin. Make someone else admin first.");
       if (isStaff(u) && !sup) return no("AX-403", "This person is a PIKOM admin. Ask a super admin to remove them.");
-      return ok({ ...db, users: db.users.filter(x => x.id !== u.id), events: db.events.map(e => promote({ ...e, registrations: e.registrations.filter(r => r.userId !== u.id) })) }, `Removed ${u.name} (${u.email})`);
+      const regs = db.events.flatMap(e => e.registrations.filter(r => r.userId === u.id).map(r => ({ eventId: e.id, reg: r })));
+      const [d1, t] = bin(db, "user", `${u.name} (${u.email})`, { user: u, regs }, u.orgId);
+      return ok({ ...d1, users: db.users.filter(x => x.id !== u.id), events: db.events.map(e => promote({ ...e, registrations: e.registrations.filter(r => r.userId !== u.id) })) }, `Removed ${u.name} (${u.email})`, `${u.name} removed — seat freed.`, t);
     }
     case "setMainHolder": {
       const [orgId, raw] = args; if (!sup) return deny;
@@ -268,7 +290,7 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (!o) return no("AX-404", "Company not found.");
       if (email && o.domain && domainOf(email) !== o.domain) return no("AX-304", `The admin's email must end in @${o.domain}.`);
       const u = db.users.find(x => x.email === email && x.orgId === orgId);
-      if (u && u.role !== "main" && adminsOf(db, orgId).length >= MAX_COMPANY_ADMINS) return no("AX-110", `${o.name} already has ${MAX_COMPANY_ADMINS} company admins. Change one of them to another role first.`);
+      if (u && u.role !== "main" && adminsOf(db, orgId).length >= settingsOf(db).maxAdmins) return no("AX-110", `${o.name} already has ${settingsOf(db).maxAdmins} company admins. Change one of them to another role first.`);
       return ok({ ...db, orgs: db.orgs.map(x => x.id === orgId ? { ...x, mainEmail: email } : x), users: db.users.map(x => u && x.id === u.id ? { ...x, role: "main" } : x) },
         `Company admin for ${o.name} set to ${email || "(none)"}`, u ? `${u.name} is now a company admin.` : email ? `${email} becomes company admin when they register.` : "Saved.");
     }
@@ -278,7 +300,7 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (!COMPANY_ROLES.includes(role)) return no("AX-400", "Unknown role.");
       if (!canManageCompany(me, u.orgId)) return deny;
       const admins = adminsOf(db, u.orgId);
-      if (role === "main" && u.role !== "main" && admins.length >= MAX_COMPANY_ADMINS) return no("AX-110", `A company can have up to ${MAX_COMPANY_ADMINS} admins. Change one admin to another role first.`);
+      if (role === "main" && u.role !== "main" && admins.length >= settingsOf(db).maxAdmins) return no("AX-110", `A company can have up to ${settingsOf(db).maxAdmins} admins. Change one admin to another role first.`);
       if (u.role === "main" && role !== "main" && admins.length <= 1) return no("AX-111", "A company needs at least one admin. Make someone else admin first.");
       return ok({ ...db, users: db.users.map(x => x.id === u.id ? { ...x, role } : x) }, `${u.name} (${orgName(u.orgId)}) is now ${roleLabel(role).toLowerCase()}`, `${u.name} is now ${roleLabel(role).toLowerCase()}.`);
     }
@@ -291,8 +313,8 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (db.orgs.some(o => o.domain === dom)) return no("AX-303", "This domain is already whitelisted.");
       const main = String(mainEmail || "").trim().toLowerCase();
       if (main && domainOf(main) !== dom) return no("AX-304", `The main account holder's email must end in @${dom}.`);
-      const o: Org = { id: uid(), domain: dom, name: String(nm || dom).trim(), type, pikomNo: pikomNo || "", mainEmail: main, seatLimit: SEAT_LIMIT, status: "active", whitelistedOn: today(), renewal: renewal || "", profile: { ...emptyProfile(), category: category || "", about: about || "" } };
-      return ok({ ...db, orgs: [o, ...db.orgs] }, `Whitelisted ${dom} for ${o.name} — added to the member directory`, `${o.name} is now in the member directory. Anyone with an @${dom} email can register (up to ${SEAT_LIMIT} people).`);
+      const o: Org = { id: uid(), domain: dom, name: String(nm || dom).trim(), type, pikomNo: pikomNo || "", mainEmail: main, seatLimit: settingsOf(db).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: renewal || "", profile: { ...emptyProfile(), category: category || "", about: about || "" } };
+      return ok({ ...db, orgs: [o, ...db.orgs] }, `Whitelisted ${dom} for ${o.name} — added to the member directory`, `${o.name} is now in the member directory. Anyone with an @${dom} email can register (up to ${settingsOf(db).defaultSeatLimit} people).`);
     }
     case "updateOrg": {
       if (!sup) return deny;
@@ -309,7 +331,9 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
     case "removeOrg": {
       if (!sup) return deny;
       const orgId = args[0]; if (me.orgId === orgId) return no("AX-403", "You can't remove your own company while signed in with it.");
-      return ok({ ...db, orgs: db.orgs.filter(x => x.id !== orgId), users: db.users.filter(u => u.orgId !== orgId), jobs: db.jobs.filter(j => j.orgId !== orgId), spotlight: db.spotlight.filter(s => s !== orgId) }, `Removed ${orgName(orgId)} and its accounts from AI Xchange`);
+      const o = db.orgs.find(x => x.id === orgId); if (!o) return no("AX-404", "Company not found.");
+      const [d1, t] = bin(db, "org", o.name, { org: o, users: db.users.filter(u => u.orgId === orgId), jobs: db.jobs.filter(j => j.orgId === orgId) });
+      return ok({ ...d1, orgs: db.orgs.filter(x => x.id !== orgId), users: db.users.filter(u => u.orgId !== orgId), jobs: db.jobs.filter(j => j.orgId !== orgId), spotlight: db.spotlight.filter(s => s !== orgId) }, `Removed ${o.name} and its accounts from AI Xchange`, `${o.name} removed.`, t);
     }
     case "addIndividual": {
       if (!sup) return deny;
@@ -322,8 +346,9 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
         `Whitelisted individual ${e}${guest ? " (guest account upgraded)" : ""}`, guest ? `${e} already had a guest account — it now has full member access.` : `${e} can now register as an Individual Member.`);
     }
     case "removeIndividual": {
-      if (!sup) return deny; const email = args[0];
-      return ok({ ...db, individuals: db.individuals.filter(i => i.email !== email), users: db.users.filter(u => !(u.role === "individual" && u.email === email)) }, `Removed individual ${email}`);
+      if (!sup) return deny; const email = args[0]; const ind = db.individuals.find(i => i.email === email); if (!ind) return no("AX-404", "Not found.");
+      const [d1, t] = bin(db, "individual", email, { ind, users: db.users.filter(u => u.role === "individual" && u.email === email) });
+      return ok({ ...d1, individuals: db.individuals.filter(i => i.email !== email), users: db.users.filter(u => !(u.role === "individual" && u.email === email)) }, `Removed individual ${email}`, `${email} removed.`, t);
     }
     case "addUserAsAdmin": {
       const [orgId, email, nm, roleArg] = args; if (!canManageCompany(me, orgId)) return deny;
@@ -334,7 +359,7 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (domainOf(e) !== o.domain) return no("AX-304", `Email must end in @${o.domain}.`);
       if (db.users.some(u => u.email === e)) return no(ERR.ALREADY_REGISTERED, "This email is already registered.");
       if (seatsUsedIn(db, orgId) >= o.seatLimit) return no(ERR.SEATS_FULL, `All ${o.seatLimit} seats are used. Remove someone first.`);
-      if (wanted === "main" && adminsOf(db, orgId).length >= MAX_COMPANY_ADMINS) return no("AX-110", `A company can have up to ${MAX_COMPANY_ADMINS} admins.`);
+      if (wanted === "main" && adminsOf(db, orgId).length >= settingsOf(db).maxAdmins) return no("AX-110", `A company can have up to ${settingsOf(db).maxAdmins} admins.`);
       const user: User = { id: uid(), email: e, name: String(nm || "").trim() || e, password: "demo1234", role: wanted, orgId, jobTitle: "", phone: "", linkedin: "", bio: "", interests: [], createdOn: today() };
       return ok({ ...db, users: [...db.users, user] }, `Added ${e} to ${o.name}`, `${e} added with the temporary password demo1234 — ask them to change it under My account → Password.`);
     }
@@ -366,7 +391,8 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
     case "deleteJob": {
       const j = db.jobs.find(x => x.id === args[0]); if (!j) return no("AX-404", "Job not found.");
       if (!(staff || j.postedBy === me.email || canEditCompany(me, j.orgId))) return deny;
-      return ok({ ...db, jobs: db.jobs.filter(x => x.id !== j.id) }, `Closed job post “${j.title}”`);
+      const [d1, t] = bin(db, "job", j.title, j, j.orgId);
+      return ok({ ...d1, jobs: db.jobs.filter(x => x.id !== j.id) }, `Closed job post “${j.title}”`, "Job post closed.", t);
     }
     case "toggleJob": {
       if (!staff) return deny;
@@ -392,8 +418,9 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...db, events: exists ? db.events.map(x => x.id === e.id ? saved : x) : [saved, ...db.events] }, `Saved event “${e.title}”`);
     }
     case "deleteEvent": {
-      if (!staff) return deny;
-      return ok({ ...db, events: db.events.filter(e => e.id !== args[0]) }, "Deleted an event");
+      if (!staff) return deny; const ev = db.events.find(e => e.id === args[0]); if (!ev) return no("AX-404", "Event not found.");
+      const [d1, t] = bin(db, "event", ev.title, ev);
+      return ok({ ...d1, events: db.events.filter(e => e.id !== ev.id) }, `Deleted event “${ev.title}”`, "Event deleted.", t);
     }
     case "registerEvent": {
       const e = db.events.find(x => x.id === args[0]);
@@ -425,8 +452,9 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...db, content: db.content.some(x => x.id === c.id) ? db.content.map(x => x.id === c.id ? c : x) : [{ ...c, id: c.id || uid() }, ...db.content] }, `Saved ${c.kind} item “${c.title}”`);
     }
     case "deleteContent": {
-      if (!staff) return deny;
-      return ok({ ...db, content: db.content.filter(c => c.id !== args[0]) }, "Deleted a content item");
+      if (!staff) return deny; const c = db.content.find(x => x.id === args[0]); if (!c) return no("AX-404", "Item not found.");
+      const [d1, t] = bin(db, "content", c.title, c);
+      return ok({ ...d1, content: db.content.filter(x => x.id !== c.id) }, `Deleted “${c.title}”`, "Item deleted.", t);
     }
     case "saveAnnouncement": {
       if (!staff) return deny; const a: Announcement = args[0];
@@ -436,6 +464,67 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (!staff) return deny;
       return ok({ ...db, announcements: db.announcements.filter(a => a.id !== args[0]) }, "Deleted announcement");
     }
+    case "restore": {
+      const t = (db.trash || []).find(x => x.id === args[0]); if (!t) return no("AX-404", "This item can no longer be restored.");
+      const allowed = sup || (t.kind === "user" ? canManageCompany(me, t.orgId) : t.kind === "job" ? (staff || canEditCompany(me, t.orgId) || t.data.postedBy === me.email) : (t.kind === "event" || t.kind === "content") ? staff : false);
+      if (!allowed) return deny;
+      let d: DB = { ...db, trash: (db.trash || []).filter(x => x.id !== t.id) };
+      const has = (arr: { id: string }[], id: string) => arr.some(x => x.id === id);
+      if (t.kind === "user") {
+        const u = t.data.user as User;
+        if (d.users.some(x => x.email === u.email)) return no("AX-103", "Someone has registered with this email since. It can't be restored.");
+        const o = u.orgId ? d.orgs.find(x => x.id === u.orgId) : null;
+        if (u.orgId && !o) return no("AX-404", "The company no longer exists.");
+        if (o && seatsUsedIn(d, o.id) >= o.seatLimit) return no(ERR.SEATS_FULL, "All seats are now taken. Free a seat first.");
+        const regs = t.data.regs as { eventId: string; reg: Registration }[];
+        d = { ...d, users: [...d.users, u], events: d.events.map(e => { const r = regs.find(x => x.eventId === e.id); return r && !e.registrations.some(x => x.userId === u.id) ? { ...e, registrations: [...e.registrations, { ...r.reg, status: e.capacity != null && eventCounts(e).confirmed >= e.capacity ? "waitlist" : r.reg.status }] } : e; }) };
+      } else if (t.kind === "org") {
+        const o = t.data.org as Org;
+        if (o.domain && d.orgs.some(x => x.domain === o.domain)) return no("AX-303", "Another company now uses this domain.");
+        d = { ...d, orgs: [o, ...d.orgs], users: [...d.users, ...(t.data.users as User[]).filter(u => !d.users.some(x => x.email === u.email))], jobs: [...(t.data.jobs as Job[]).filter(j => !has(d.jobs, j.id)), ...d.jobs] };
+      } else if (t.kind === "individual") {
+        if (d.individuals.some(i => i.email === t.data.ind.email)) return no("AX-303", "This email is whitelisted again already.");
+        d = { ...d, individuals: [t.data.ind, ...d.individuals], users: [...d.users, ...(t.data.users as User[]).filter(u => !d.users.some(x => x.email === u.email))] };
+      } else if (t.kind === "event") { if (!has(d.events, t.data.id)) d = { ...d, events: [t.data, ...d.events] }; }
+      else if (t.kind === "content") { if (!has(d.content, t.data.id)) d = { ...d, content: [t.data, ...d.content] }; }
+      else if (t.kind === "job") { if (!has(d.jobs, t.data.id)) d = { ...d, jobs: [t.data, ...d.jobs] }; }
+      return ok(d, `Restored ${t.label}`, `${t.label} restored.`);
+    }
+    case "importOrgs": {
+      if (!sup) return deny;
+      const rows = (args[0] || []) as { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string }[];
+      let d = db; let added = 0, updated = 0; const skipped: string[] = [];
+      for (const r of rows.slice(0, 1000)) {
+        const name = String(r.name || "").trim(); const dom = String(r.domain || "").trim().toLowerCase().replace(/^@/, "");
+        const main = String(r.mainEmail || "").trim().toLowerCase();
+        if (!name) { skipped.push("(row with no name)"); continue; }
+        if (dom && (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) || PUBLIC_EMAIL_DOMAINS.includes(dom))) { skipped.push(`${name}: invalid domain`); continue; }
+        if (main && dom && domainOf(main) !== dom) { skipped.push(`${name}: admin email not on @${dom}`); continue; }
+        const byDomain = dom ? d.orgs.find(o => o.domain === dom) : undefined;
+        const byName = d.orgs.find(o => o.name.toLowerCase() === name.toLowerCase());
+        const target = byDomain || byName;
+        if (target) {
+          if (byDomain && byName && byDomain.id !== byName.id) { skipped.push(`${name}: domain already used by ${byDomain.name}`); continue; }
+          d = { ...d, orgs: d.orgs.map(o => o.id !== target.id ? o : { ...o, domain: o.domain || dom, mainEmail: o.mainEmail || main, pikomNo: r.pikomNo || o.pikomNo, renewal: r.renewal || o.renewal, type: r.type || o.type, profile: { ...o.profile, category: o.profile.category || r.category || "", about: o.profile.about || r.about || "" } }) };
+          updated++;
+        } else {
+          const o: Org = { id: uid() || rand(), domain: dom, name, type: r.type || "Ordinary Member", pikomNo: r.pikomNo || "", mainEmail: main, seatLimit: settingsOf(d).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: r.renewal || "", profile: { ...emptyProfile(), category: r.category || "", about: r.about || "" } };
+          d = { ...d, orgs: [...d.orgs, o] }; added++;
+        }
+      }
+      return ok(d, `Imported companies: ${added} added, ${updated} updated${skipped.length ? `, ${skipped.length} skipped` : ""}`, `${added} added, ${updated} updated${skipped.length ? `. Skipped: ${skipped.slice(0, 8).join("; ")}${skipped.length > 8 ? "…" : ""}` : "."}`);
+    }
+    case "updateSettings": {
+      if (!sup) return deny;
+      const p = pick<Settings>(args[0], ["memberCompaniesStat", "companiesStat", "secretariatEmail", "secretariatPhone", "defaultSeatLimit", "maxAdmins"]);
+      if (p.maxAdmins !== undefined && !(Number(p.maxAdmins) >= 1 && Number(p.maxAdmins) <= 5)) return no("AX-120", "Admins per company must be between 1 and 5.");
+      if (p.defaultSeatLimit !== undefined && !(Number(p.defaultSeatLimit) >= 1 && Number(p.defaultSeatLimit) <= 50)) return no("AX-120", "Default seats must be between 1 and 50.");
+      return ok({ ...db, settings: { ...settingsOf(db), ...p, ...(p.maxAdmins !== undefined ? { maxAdmins: Number(p.maxAdmins) } : {}), ...(p.defaultSeatLimit !== undefined ? { defaultSeatLimit: Number(p.defaultSeatLimit) } : {}) } }, "Updated site settings", "Site settings saved.");
+    }
+    case "resetPassword": {
+      if (!sup) return deny; const u = db.users.find(x => x.id === args[0]); if (!u) return no("AX-404", "Person not found.");
+      return ok({ ...db, users: db.users.map(x => x.id === u.id ? { ...x, password: "demo1234", sv: (x.sv || 0) + 1 } : x) }, `Reset password for ${u.email}`, `${u.name}'s password is now demo1234. Ask them to change it after signing in.`);
+    }
     case "setSpotlight": {
       if (!staff) return deny;
       return ok({ ...db, spotlight: (args[0] || []).slice(0, 4) }, "Updated member spotlight");
@@ -444,12 +533,19 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
   return no("AX-400", "Unknown action.");
 }
 
+const noPw = (u: User) => ({ ...u, password: "" });
+function scrubTrash(t: TrashItem) {
+  if (t.kind === "user") return { ...t.data, user: noPw(t.data.user) };
+  if (t.kind === "org" || t.kind === "individual") return { ...t.data, users: (t.data.users as User[]).map(noPw) };
+  return t.data;
+}
 /** What a given viewer is allowed to receive. Passwords never leave the server. */
 export function viewFor(db: DB, me: User | null): DB {
   const staff = isStaff(me), sup = isSuper(me), full = fullAccess(me);
   const users = db.users.map(u => {
     const { password, ...rest } = u; void password;
-    if (full || u.id === me?.id) return { ...rest, password: "" };
+    if (u.id === me?.id || sup) return { ...rest, password: "" };
+    if (full) return { ...rest, password: "", phone: u.showPhone === false ? "" : u.phone, linkedin: u.showLinkedin === false ? "" : u.linkedin };
     return { ...rest, password: "", email: "", name: "PIKOM member", phone: "", linkedin: "", bio: "", jobTitle: "", interests: [], company: "", lastSignIn: undefined };
   });
   const mine = (by: string) => !!me && by === me.email;
@@ -458,6 +554,8 @@ export function viewFor(db: DB, me: User | null): DB {
     users,
     individuals: sup ? db.individuals : db.individuals.filter(i => i.email === me?.email),
     log: sup ? db.log : [],
+    settings: settingsOf(db),
+    trash: sup ? (db.trash || []).map(t => ({ ...t, data: scrubTrash(t) })) : staff ? (db.trash || []).filter(t => t.kind === "event" || t.kind === "content" || t.kind === "job") : [],
     orgs: full ? db.orgs : db.orgs.map(o => ({ ...o, mainEmail: "", pikomNo: "", profile: { ...o.profile, phone: "", linkedin: "" } })),
     jobs: db.jobs.filter(j => !j.hidden || staff || mine(j.postedBy)).map(j => full ? j : { ...j, salary: "", description: "", applyEmail: "", linkedinUrl: "", postedBy: "" }),
     rfps: db.rfps.filter(r => !r.hidden || staff || mine(r.postedBy)).map(r => full ? r : { ...r, budget: "", description: "", contactEmail: "", postedBy: "" }),

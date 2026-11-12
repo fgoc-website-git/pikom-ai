@@ -2,12 +2,13 @@
 // Client store. Data comes from the server (/api/state) and every change is sent to /api/action.
 // Screens update instantly by running the same rules locally; the server's answer then replaces it.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { act, makeIds, seatsUsedIn, fullAccess, type ActionName, type DB, type User, type Org, type Result, type Check, type CompanyProfile, type Job, type Rfp, type PEvent, type Content, type Announcement, type Role } from "./engine";
+import { act, makeIds, seatsUsedIn, fullAccess, type ActionName, type DB, type User, type Org, type Result, type Check, type CompanyProfile, type Job, type Rfp, type PEvent, type Content, type Announcement, type Role, type Settings, normalize } from "./engine";
 import type { MemberType } from "./options";
 
 export * from "./engine";
 
-const EMPTY: DB = { orgs: [], individuals: [], users: [], jobs: [], rfps: [], events: [], content: [], announcements: [], spotlight: [], log: [] };
+const EMPTY: DB = normalize({ orgs: [], individuals: [], users: [], jobs: [], rfps: [], events: [], content: [], announcements: [], spotlight: [], log: [] });
+export type ImportRow = { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string };
 
 type RegisterInput = { email: string; name: string; password: string; jobTitle: string; consent: boolean; asGuest?: boolean; company?: string };
 interface Ctx {
@@ -32,6 +33,13 @@ interface Ctx {
   saveContent: (c: Content) => void; deleteContent: (id: string) => void;
   saveAnnouncement: (a: Announcement) => void; deleteAnnouncement: (id: string) => void;
   setSpotlight: (ids: string[]) => void;
+  restore: (trashId: string) => Promise<Result>;
+  importOrgs: (rows: ImportRow[]) => Result;
+  updateSettings: (p: Partial<Settings>) => Result;
+  resetPassword: (userId: string) => Result;
+  signOutEverywhere: () => Promise<Result>;
+  /** The last removal that can be undone (shown by <UndoBar/>). */
+  lastUndo: { id: string; msg: string } | null; clearUndo: () => void;
 }
 
 const C = createContext<Ctx | null>(null);
@@ -45,6 +53,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [meId, setMeId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [offline, setOffline] = useState<string | null>(null);
+  const [lastUndo, setLastUndo] = useState<{ id: string; msg: string } | null>(null);
   const dbRef = useRef(db); dbRef.current = db;
   const meRef = useRef(meId); meRef.current = meId;
   const pending = useRef(0);
@@ -81,10 +90,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const local = act(cur, meNow, name, args, ids);
     if (!local.result.ok) return local.result;
     setDb(local.db);
+    if (local.result.undo) setLastUndo({ id: local.result.undo, msg: local.result.msg || "Removed." });
     pending.current++;
     post("/api/action", { name, args, ids })
       .then(j => {
-        if (j?.result && !j.result.ok) window.alert(`${j.result.code}: ${j.result.msg}`);
+        if (j?.result && !j.result.ok) { setLastUndo(null); window.alert(`${j.result.code}: ${j.result.msg}`); }
         else if (j?.error) window.alert(j.error);
         apply(j);
       })
@@ -121,6 +131,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveContent: (c) => { run("saveContent", c); }, deleteContent: (id) => { run("deleteContent", id); },
     saveAnnouncement: (a) => { run("saveAnnouncement", a); }, deleteAnnouncement: (id) => { run("deleteAnnouncement", id); },
     setSpotlight: (ids) => { run("setSpotlight", ids); },
+    restore: async (id) => { setLastUndo(null); const j = await post("/api/action", { name: "restore", args: [id], ids: makeIds(2) }); apply(j); return j.result || { ok: false, code: "AX-500", msg: j.error || "Couldn't restore." }; },
+    importOrgs: (rows) => run("importOrgs", rows),
+    updateSettings: (p) => run("updateSettings", p),
+    resetPassword: (id) => run("resetPassword", id),
+    signOutEverywhere: async () => { const j = await post("/api/auth", { op: "signoutAll" }); apply(j); return j.result; },
+    lastUndo, clearUndo: () => setLastUndo(null),
   };
   return <C.Provider value={value}>{children}</C.Provider>;
 }

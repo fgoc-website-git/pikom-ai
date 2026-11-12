@@ -1,10 +1,11 @@
 "use client";
+import { TIP } from "@/lib/help";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useStore, canPostJob, canPostRfp } from "@/lib/store";
 import { JOB_CATEGORIES, WORK_MODES, EXPERIENCE, JOB_TYPES, STATES, INDUSTRIES_SERVED } from "@/lib/options";
 import { slugify } from "@/lib/directory";
-import { Field, Area, SelectOther, ErrorBox, Avatar, Locked, useToast, ago, fmtDate } from "@/components/ui";
+import { Field, Area, SelectOther, ErrorBox, Avatar, Locked, useToast, ago, fmtDate, Tip } from "@/components/ui";
 import { SearchIcon } from "@/components/PageHero";
 
 const RFP_TYPES = ["Solution required", "POC first", "Training programme", "Managed service", "Co-development", "Other"];
@@ -75,7 +76,7 @@ function Business() {
               </div>
             </div>
             {full ? <button className="btn sm" aria-expanded={open === r.id} onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? "Hide details" : "View details"}</button>
-              : <button className="btn sm" disabled title="Members only">Respond</button>}
+              : <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}><button className="btn sm" disabled title="Members only">Respond</button><Tip text={TIP.membersOnly} label="Why can't I respond?" /></span>}
           </div>
           {full && open === r.id && (
             <div className="stack" style={{ gap: 10, borderTop: "1px solid var(--soft)", paddingTop: 12 }}>
@@ -166,7 +167,7 @@ function Jobs() {
                 </div>
                 <div className="stack" style={{ gap: 8, alignItems: "flex-end" }}>
                   {full ? <span style={{ fontWeight: 600 }}>{j.salary || "Salary not stated"}</span> : <Locked inline />}
-                  {!full ? <button className="btn primary sm" disabled title="Members only">Apply</button>
+                  {!full ? <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}><button className="btn primary sm" disabled title="Members only">Apply</button><Tip text={TIP.membersOnly} label="Why can't I apply?" /></span>
                     : j.linkedinUrl ? <a className="btn primary sm" href={j.linkedinUrl} target="_blank" rel="noreferrer">Apply on LinkedIn ↗</a>
                     : <a className="btn primary sm" href={`mailto:${j.applyEmail}?subject=${encodeURIComponent(j.title)}`}>Apply by email</a>}
                 </div>

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useStore, today, canPostJob, PAYING } from "@/lib/store";
+import { useStore, today, canPostJob, PAYING, settingsOf } from "@/lib/store";
 import { companies } from "@/lib/directory";
 import { Avatar, fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
@@ -41,7 +41,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#1E3A5F", border: "1px solid #1E3A5F", borderRadius: 14, overflow: "hidden", maxWidth: 460, justifySelf: "end", width: "100%" }}>
-          {[["2,000+", "PIKOM member companies"], ["157", "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => r.status === "Open").length + db.jobs.length), "Open opportunities"]].map(([n, l]) => (
+          {[[settingsOf(db).memberCompaniesStat, "PIKOM member companies"], [settingsOf(db).companiesStat, "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => r.status === "Open").length + db.jobs.length), "Open opportunities"]].map(([n, l]) => (
             <div key={l} className="stack" style={{ gap: 2, background: "#0E2647", padding: "22px 22px" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 30, fontWeight: 800 }}>{n}</span><span className="small" style={{ color: "#94A3B8" }}>{l}</span></div>))}
         </div>
       </div></section>

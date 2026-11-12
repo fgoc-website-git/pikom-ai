@@ -1,9 +1,10 @@
 "use client";
+import { TIP } from "@/lib/help";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useStore, roleLabel } from "@/lib/store";
 import { companies } from "@/lib/directory";
-import { Avatar, Locked } from "@/components/ui";
+import { Avatar, Locked, Tip } from "@/components/ui";
 
 export default function Profile() {
   const { slug } = useParams<{ slug: string }>();
@@ -43,7 +44,7 @@ export default function Profile() {
           </dl>
         </div>
         <div className="stack" style={{ gap: 10, marginTop: 16 }}>
-          <div className="row between"><h2 className="h3">People from {c.name} ({team.length})</h2><span className="small muted">Visible to PIKOM members only</span></div>
+          <div className="row between"><h2 className="h3">People from {c.name} ({team.length})</h2><span className="small muted">Visible to PIKOM members only <Tip text={TIP.membersOnly} /></span></div>
           {team.length === 0 ? <div className="empty">Nobody from {c.name} has activated their AI Xchange account yet.</div> : (
             <div className="table-wrap"><table>
               <thead><tr><th>Name</th><th>Job title</th><th>Email</th><th>Phone</th><th>LinkedIn</th></tr></thead>

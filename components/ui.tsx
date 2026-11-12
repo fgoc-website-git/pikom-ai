@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { OTHER } from "@/lib/options";
 import { useStore } from "@/lib/store";
+import { ERR_HELP, TIP } from "@/lib/help";
 
 const isOtherVal = (opts: string[], v: string) => v !== "" && !opts.includes(v);
 
@@ -57,15 +58,130 @@ export function MultiOther({ legend, options, value, onChange, max }: { legend: 
   );
 }
 
-export function Field({ label, hint, ...p }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
-  return <label className="field">{label}<input className="input" {...p} />{hint && <span className="hint">{hint}</span>}</label>;
+export function Field({ label, hint, tip, ...p }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string; tip?: string }) {
+  return <label className="field"><span className="lbl">{label}{tip && <Tip text={tip} />}</span><input className="input" {...p} />{hint && <span className="hint">{hint}</span>}</label>;
 }
-export function Area({ label, hint, ...p }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string }) {
-  return <label className="field">{label}<textarea className="textarea" {...p} />{hint && <span className="hint">{hint}</span>}</label>;
+export function Area({ label, hint, tip, ...p }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; hint?: string; tip?: string }) {
+  return <label className="field"><span className="lbl">{label}{tip && <Tip text={tip} />}</span><textarea className="textarea" {...p} />{hint && <span className="hint">{hint}</span>}</label>;
+}
+
+/** ⓘ button with a short explanation. Opens on hover, keyboard focus or tap; Esc closes. */
+export function Tip({ text, label = "More info" }: { text: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const id = React.useId();
+  const ref = React.useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", off); document.addEventListener("touchstart", off); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", off); document.removeEventListener("touchstart", off); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  return (
+    <span className="tip" ref={ref} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button type="button" className="tip-btn" aria-label={label} aria-describedby={open ? id : undefined} aria-expanded={open}
+        onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>i</button>
+      {open && <span role="tooltip" id={id} className="tip-pop">{text}</span>}
+    </span>
+  );
+}
+
+/* ---------- Confirm dialog (replaces the browser pop-up) ---------- */
+type AskOpts = { ok?: string; danger?: boolean; detail?: string };
+let openAsk: ((q: { msg: string; opts: AskOpts; done: (v: boolean) => void }) => void) | null = null;
+export const ask = (msg: string, opts: AskOpts = { danger: true }) => new Promise<boolean>(done => openAsk ? openAsk({ msg, opts, done }) : done(window.confirm(msg)));
+export function ConfirmHost() {
+  const [q, setQ] = useState<{ msg: string; opts: AskOpts; done: (v: boolean) => void } | null>(null);
+  const okRef = React.useRef<HTMLButtonElement>(null);
+  useEffect(() => { openAsk = setQ; return () => { openAsk = null; }; }, []);
+  useEffect(() => { if (q) okRef.current?.focus(); }, [q]);
+  if (!q) return null;
+  const close = (v: boolean) => { q.done(v); setQ(null); };
+  return (
+    <div className="modal-back" onClick={() => close(false)} onKeyDown={e => { if (e.key === "Escape") close(false); }}>
+      <div className="modal card stack" role="alertdialog" aria-modal="true" aria-labelledby="ask-t" onClick={e => e.stopPropagation()}>
+        <h2 id="ask-t" className="h3">{q.msg}</h2>
+        {q.opts.detail && <p className="small muted">{q.opts.detail}</p>}
+        {q.opts.danger !== false && <p className="small muted">{TIP_UNDO}</p>}
+        <div className="row" style={{ justifyContent: "flex-end" }}>
+          <button className="btn" onClick={() => close(false)}>Cancel</button>
+          <button ref={okRef} className={`btn ${q.opts.danger === false ? "primary" : "danger-solid"}`} onClick={() => close(true)}>{q.opts.ok || "Remove"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+const TIP_UNDO = "You can undo this straight after, or restore it within 30 days.";
+
+/** Bottom bar after a removal, with Undo. */
+export function UndoBar() {
+  const { lastUndo, clearUndo, restore } = useStore();
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (!lastUndo) return; const h = setTimeout(clearUndo, 12000); return () => clearTimeout(h); }, [lastUndo, clearUndo]);
+  if (!lastUndo) return null;
+  return (
+    <div className="toast undo" role="status">
+      <span>{lastUndo.msg}</span>
+      <button className="link-btn" disabled={busy} onClick={async () => { setBusy(true); const r = await restore(lastUndo.id); setBusy(false); if (!r.ok) window.alert(`${r.code}: ${r.msg}`); }}>{busy ? "Restoring…" : "Undo"}</button>
+      <button className="link-btn" aria-label="Dismiss" onClick={clearUndo}>×</button>
+    </div>
+  );
+}
+
+/* ---------- List tools: search, filter chips, sort, paging ---------- */
+const plural = (n: string) => n === "person" ? "people" : /[^aeiou]y$/.test(n) ? n.slice(0, -1) + "ies" : n.endsWith("s") ? n : n + "s";
+export function ListBar({ q, setQ, placeholder, filters, filter, setFilter, sorts, sort, setSort, count, noun, children }: {
+  q: string; setQ: (v: string) => void; placeholder: string;
+  filters?: [string, string, number?][]; filter?: string; setFilter?: (v: string) => void;
+  sorts?: [string, string][]; sort?: string; setSort?: (v: string) => void; count: number; noun: string; children?: React.ReactNode;
+}) {
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      <div className="row between" style={{ gap: 10 }}>
+        <div className="row" style={{ flex: "1 1 420px", gap: 10 }}>
+          <input className="input" style={{ flex: "1 1 240px", maxWidth: 360, width: "auto" }} type="search" aria-label={placeholder} placeholder={placeholder} value={q} onChange={e => setQ(e.target.value)} />
+          {sorts && setSort && <label className="row small" style={{ gap: 6, flexWrap: "nowrap" }}><span className="muted">Sort</span><select className="select" style={{ width: "auto" }} value={sort} onChange={e => setSort(e.target.value)}>{sorts.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>}
+        </div>
+        <div className="row" style={{ gap: 8 }}>{children}</div>
+      </div>
+      {filters && setFilter && (
+        <div className="row between" style={{ gap: 8 }}>
+          <div className="chips" role="group" aria-label="Filter">{filters.map(([k, l, n]) => <button key={k} type="button" className={`chip${filter === k ? " on" : ""}`} aria-pressed={filter === k} onClick={() => setFilter(k)}>{l}{n !== undefined && <span className="chip-n">{n}</span>}</button>)}</div>
+          <span className="small muted">{count} {count === 1 ? noun : plural(noun)}</span>
+        </div>)}
+      {!filters && <span className="small muted">{count} {count === 1 ? noun : plural(noun)}</span>}
+    </div>
+  );
+}
+export function usePaged<T>(items: T[], size = 20) {
+  const [page, setPage] = useState(1);
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  useEffect(() => { if (page > pages) setPage(1); }, [pages, page]);
+  return { rows: items.slice((page - 1) * size, page * size), page, pages, setPage, total: items.length, size };
+}
+export function Pager({ page, pages, setPage, total, size }: { page: number; pages: number; setPage: (n: number) => void; total: number; size: number }) {
+  if (pages <= 1) return null;
+  return (
+    <div className="row between small" style={{ marginTop: 4 }}>
+      <span className="muted">Showing {(page - 1) * size + 1}–{Math.min(page * size, total)} of {total}</span>
+      <div className="row" style={{ gap: 6 }}>
+        <button className="btn sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Previous</button>
+        <span className="muted">Page {page} of {pages}</span>
+        <button className="btn sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next →</button>
+      </div>
+    </div>
+  );
+}
+/** Read a ?key= value once on load (avoids Next's Suspense requirement for useSearchParams). */
+export function useQueryParam(key: string, fallback = "") {
+  const [v, setV] = useState(fallback);
+  useEffect(() => { const x = new URLSearchParams(window.location.search).get(key); if (x) setV(x); }, [key]);
+  return [v, setV] as const;
 }
 
 export function ErrorBox({ code, msg, children }: { code?: string; msg: string; children?: React.ReactNode }) {
-  return <div className="alert error" role="alert">{code && <><b className="code">Error {code}</b> · </>}{msg}{children && <div style={{ marginTop: 10 }}>{children}</div>}</div>;
+  const help = code ? ERR_HELP[code] : undefined;
+  return <div className="alert error" role="alert">{code && <><b className="code">Error {code}</b>{help && <Tip text={help} label={`What does ${code} mean?`} />} · </>}{msg}{children && <div style={{ marginTop: 10 }}>{children}</div>}</div>;
 }
 
 export function initials(name: string) {
@@ -76,7 +192,7 @@ export function Avatar({ name, logo, round, lg }: { name: string; logo?: string;
 }
 
 export function SeatDots({ used, limit }: { used: number; limit: number }) {
-  return <span className="row" style={{ gap: 8 }}><span className="seatdots" aria-hidden="true">{Array.from({ length: limit }, (_, i) => <i key={i} className={i < used ? "on" : ""} />)}</span><span className="small" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{used} / {limit} seats</span></span>;
+  return <span className="row" style={{ gap: 8 }}><span className="seatdots" aria-hidden="true">{Array.from({ length: limit }, (_, i) => <i key={i} className={i < used ? "on" : ""} />)}</span><span className="small" style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{used} / {limit} seats</span><Tip text={TIP.seats} label="About seats" /></span>;
 }
 
 export function useToast() {
@@ -104,7 +220,7 @@ export function MembersOnly({ children, staff }: { children: React.ReactNode; st
 export function Locked({ what = "details", inline }: { what?: string; inline?: boolean }) {
   const { me } = useStore();
   const msg = me ? <>Members only · <Link href="/membership">become a member</Link></> : <>Members only · <Link href="/signin">sign in</Link></>;
-  if (inline) return <span className="badge">{msg}</span>;
+  if (inline) return <span className="badge">{msg}<Tip text={TIP.membersOnly} /></span>;
   return <div className="alert info small">The {what} are for PIKOM members. {me ? <Link href="/membership">See how to become a member</Link> : <><Link href="/signin">Sign in</Link> or <Link href="/membership">become a member</Link></>}.</div>;
 }
 

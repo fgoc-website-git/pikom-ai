@@ -27,7 +27,8 @@ export function Header() {
         {me ? (
           <div className="row" style={{ gap: 8 }}>
             {canManageContent(me) && <Link className="btn sm dark" href="/admin">{isSuper(me) ? "Super admin" : "PIKOM admin"}</Link>}
-            <Link href="/account" className="row" style={{ gap: 8, padding: "4px 12px 4px 4px", border: "1px solid var(--line)", borderRadius: 999, color: "var(--ink)", flexWrap: "nowrap" }}>
+            {myOrg && <Link className={`btn sm${path.startsWith("/company") ? " primary" : ""}`} href="/company">My company</Link>}
+            <Link href="/account" title="Account settings" className="row" style={{ gap: 8, padding: "4px 12px 4px 4px", border: "1px solid var(--line)", borderRadius: 999, color: "var(--ink)", flexWrap: "nowrap" }}>
               <Avatar name={me.name} round />
               <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{me.name.split(" ")[0]}</span>

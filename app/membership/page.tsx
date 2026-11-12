@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useStore } from "@/lib/store";
+import { useStore, settingsOf } from "@/lib/store";
 
 const TIERS = [
   { name: "Associate Member", who: "Non-tech companies incorporated in Malaysia — e.g. banks and manufacturers buying AI.", annual: "RM1,000", entry: "RM500", items: ["Full AI Xchange access for 5 people", "Find AI vendors and post RFPs", "Event & Academy member rates", "PIKOM research"] },
@@ -23,7 +23,8 @@ const ROWS = [
 ];
 
 export default function Membership() {
-  const { me } = useStore();
+  const { me, db } = useStore();
+  const st = settingsOf(db);
   return (
     <>
       <section className="wrap stack" style={{ padding: "48px 24px 0", gap: 12, alignItems: "center", textAlign: "center" }}>
@@ -75,7 +76,7 @@ export default function Membership() {
           <div className="stack" style={{ gap: 8, maxWidth: 640 }}>
             <h2 className="h2" style={{ color: "#fff" }}>Join PIKOM or get your domain whitelisted</h2>
             <p style={{ color: "#CBD5E1" }}>Membership applications, renewals and whitelisting are handled by the PIKOM secretariat.</p>
-            <p style={{ color: "#CBD5E1" }}>Email: [secretariat email] · Phone: [secretariat phone]</p>
+            <p style={{ color: "#CBD5E1" }}>Email: {st.secretariatEmail ? <a style={{ color: "#fff" }} href={`mailto:${st.secretariatEmail}`}>{st.secretariatEmail}</a> : "[secretariat email]"} · Phone: {st.secretariatPhone || "[secretariat phone]"}</p>
           </div>
           <a className="btn accent" href="https://pikom.org.my" target="_blank" rel="noreferrer">Visit pikom.org.my ↗</a>
         </div>
