@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useStore, roleLabel, canManageContent, isSuper } from "@/lib/store";
+import { useStore, roleLabel, canManageContent, isSuper, settingsOf } from "@/lib/store";
 import { shortName } from "@/lib/directory";
 import { Avatar } from "./ui";
 import { Icon } from "./Icons";
@@ -91,27 +91,35 @@ export function Header() {
 }
 
 export function Footer() {
+  const { db } = useStore();
+  const st = settingsOf(db);
+  const year = new Date().getFullYear();
+  const cols: [string, [string, string, boolean?][]][] = [
+    ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"]]],
+    ["Membership", [["/membership", "Membership & access"], ["/register", "Join AI Xchange"], ["/signin", "Sign in"], ["https://pikom.org.my", "pikom.org.my", true]]],
+    ["Help", [["/membership#contact", "Contact the secretariat"], ["/privacy", "Privacy notice (PDPA 2010)"], ["/terms", "Terms of use"]]],
+  ];
   return (
-    <footer className="site-foot"><div className="wrap">
-      <div className="stack" style={{ maxWidth: 380, gap: 8 }}>
-        <div className="foot-logos">
-          <span className="chip-logo"><img src="/brand/ai-xchange-logo.png" alt="AI Xchange Malaysia" style={{ height: 44 }} /></span>
-          <a href="https://pikom.org.my" target="_blank" rel="noreferrer" className="chip-logo" style={{ padding: 0, overflow: "hidden" }}><img src="/brand/pikom-logo.jpg" alt="PIKOM — The National Tech Association of Malaysia" style={{ height: 60, display: "block" }} /></a>
+    <footer className="site-foot">
+      <div className="wrap foot-main">
+        <div className="foot-brand">
+          <Link href="/" aria-label="AI Xchange Malaysia home"><img src="/brand/ai-xchange-logo-white.png" alt="AI Xchange Malaysia — a PIKOM chapter" className="foot-logo" /></Link>
+          <p>The information and networking platform for PIKOM members working in AI — verified partners, talent, opportunities and policy in one place.</p>
+          <a className="foot-pikom" href="https://pikom.org.my" target="_blank" rel="noreferrer" aria-label="PIKOM — The National Tech Association of Malaysia">
+            <span className="small">An initiative of</span><img src="/brand/pikom-logo-white.png" alt="PIKOM" />
+          </a>
         </div>
-        <span>An information and networking platform for members of PIKOM, The National Tech Association of Malaysia.</span>
+        {cols.map(([t, links]) => (
+          <nav key={t} className="foot-col" aria-label={t}>
+            <span className="foot-h">{t}</span>
+            {links.map(([h, l, ext]) => ext ? <a key={h} href={h} target="_blank" rel="noreferrer">{l} ↗</a> : <Link key={h} href={h}>{l}</Link>)}
+            {t === "Help" && (st.secretariatEmail || st.secretariatPhone) && <span className="foot-contact">{st.secretariatEmail && <a href={`mailto:${st.secretariatEmail}`}>{st.secretariatEmail}</a>}{st.secretariatPhone && <span>{st.secretariatPhone}</span>}</span>}
+          </nav>))}
       </div>
-      <div className="stack" style={{ gap: 8 }}>
-        <span style={{ color: "#fff", fontWeight: 600 }}>Membership</span>
-        <Link href="/membership">Membership & access</Link>
-        <Link href="/register">Join AI Xchange</Link>
-        <a href="https://pikom.org.my" target="_blank" rel="noreferrer">pikom.org.my</a>
-      </div>
-      <div className="stack" style={{ gap: 8 }}>
-        <span style={{ color: "#fff", fontWeight: 600 }}>Help</span>
-        <Link href="/privacy">Privacy notice (PDPA 2010)</Link>
-        <Link href="/terms">Terms of use</Link>
-        <Link href="/membership#contact">Contact the secretariat</Link>
-      </div>
-    </div><div className="foot-bottom"><div className="wrap">© PIKOM — The National Tech Association of Malaysia. AI Xchange is a PIKOM chapter.</div></div></footer>
+      <div className="foot-bottom"><div className="wrap">
+        <span>© {year} PIKOM — The National Tech Association of Malaysia. AI Xchange Malaysia is a PIKOM chapter.</span>
+        <span className="foot-mini"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/membership#contact">Contact</Link></span>
+      </div></div>
+    </footer>
   );
 }
