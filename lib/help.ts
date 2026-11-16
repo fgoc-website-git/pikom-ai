@@ -38,6 +38,8 @@ export const TIP = {
   statMembers: "Shown on the home page as 'PIKOM member companies'.",
   defaultSeats: "Seats given to newly whitelisted companies. Existing companies keep their own limit.",
   maxAdmins: "How many company admins a company can have. The access document says 2.",
+  promote: "Promoted events show at the top of the home page and Events page, and in a bar at the top of every page, until the event date. Visitors who aren't signed in see it too. If several are promoted, the soonest one shows.",
+  regUrl: "Where people register when it's not the event website, e.g. a registration or 'register interest' form.",
   undo: "Removed items are kept for 30 days and can be restored from Activity log → Recently removed.",
 } as const;
 

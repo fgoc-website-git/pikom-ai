@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { PromoBar } from "@/components/EventPromo";
 import { usePathname, useRouter } from "next/navigation";
 import { useStore, roleLabel, canManageContent, isSuper, settingsOf } from "@/lib/store";
 import { shortName } from "@/lib/directory";
@@ -86,6 +87,7 @@ export function Header() {
       </div></header>
       {offline && <Banner id="offline" tone="red" icon="info">We can't reach the server right now ({offline}). Changes won't be saved until it's back.</Banner>}
       {ann && <Banner id={ann.id} tone="orange" icon="megaphone">{ann.text} {ann.link && <Link href={ann.link}>Find out more</Link>}</Banner>}
+      <PromoBar />
       {me?.role === "guest" && <Banner id="guest" tone="blue" icon="info">You're on a free guest account. <a href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Become a PIKOM member</a> to see full details, apply and connect.</Banner>}
     </>
   );

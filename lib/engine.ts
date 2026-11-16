@@ -76,6 +76,10 @@ export interface PEvent {
   dateLabel?: string;
   /** Event website. With external=true, registration happens there instead of on AI Xchange. */
   url?: string; external?: boolean;
+  /** Event page extras (all optional). regUrl: where to register when it differs from the event website. */
+  tagline?: string; regUrl?: string; regLabel?: string; highlights?: string[]; agenda?: string[]; speakers?: string[]; whoShouldAttend?: string; contact?: string;
+  /** Promoted on the home page, Events page and the top bar until the event date. */
+  featured?: boolean;
 }
 export type ContentKind = "policy" | "research" | "news";
 export interface Content {
@@ -107,6 +111,16 @@ export function normalize(d: DB): DB {
     out.announcements = out.announcements.map(a => a.text.startsWith("Preview of AI Xchange for PIKOM review") || a.text.startsWith("This is a demo") ? { ...a, text: "Preview of AI Xchange for PIKOM review — job listings shown are samples." } : a);
     out.migrations = [...out.migrations!, "events-2026-11"];
   }
+  // 16 Nov 2026: event page details + promote the next PIKOM event. Only fills fields that are still empty.
+  if (!out.migrations!.includes("events-2026-11b")) {
+    out.events = out.events.map(e => {
+      const x = EVENT_DETAILS_2026_11[e.id]; if (!x) return e;
+      const fill: Partial<PEvent> = {};
+      (Object.keys(x) as (keyof PEvent)[]).forEach(k => { if (e[k] === undefined || e[k] === "") (fill as Record<string, unknown>)[k] = x[k]; });
+      return { ...e, ...fill };
+    });
+    out.migrations = [...out.migrations!, "events-2026-11b"];
+  }
   return out;
 }
 const tot = (ref: string, title: string, buyer: string, sector: string, procurementType: string, publishedOn: string, closes: string, docRef: string, budget: string, summary: string, description: string): Rfp => ({
@@ -118,6 +132,26 @@ const tot = (ref: string, title: string, buyer: string, sector: string, procurem
 const pev = (id: string, p: Partial<PEvent> & Pick<PEvent, "title" | "type" | "date" | "venue" | "description" | "host">): PEvent => ({
   id, time: "", link: "", capacity: null, perCompany: null, audience: "all", price: "See event website", regClose: p.date, status: "Published", materials: "", registrations: [], ...p,
 });
+/** The event promoted across the site: the soonest upcoming published event marked featured. */
+export function promotedEvent(db: DB, todayIso: string): PEvent | undefined {
+  return db.events.filter(e => e.featured && e.status === "Published" && e.date >= todayIso).sort((a, b) => a.date.localeCompare(b.date))[0];
+}
+export const EVENT_DETAILS_2026_11: Record<string, Partial<PEvent>> = {
+  "ev-gbs-global-summit-2026": {
+    featured: true, tagline: "Shaping the future of Global Business Services",
+    regUrl: "https://forms.gle/zvS5XBovhRjPqSWT8", regLabel: "Register interest",
+    highlights: ["Latest trends shaping Global Business Services (GBS) worldwide", "Meet decision-makers, innovators and policymakers", "GBS Awards — celebrating excellence in the industry", "Register interest for early updates and invitations"],
+    whoShouldAttend: "GBS and shared-services leaders, technology and AI providers, investors and policymakers.",
+    contact: "events@gbsmalaysia.org.my · PIKOM 03-7622 0079",
+  },
+  "ev-members-meet-4-2026": {
+    tagline: "Member updates, AI policy news and networking",
+    highlights: ["Updates from the PIKOM AI Chapter", "AI policy and governance news", "Networking with other AI Xchange members"],
+    whoShouldAttend: "People from PIKOM member companies and PIKOM Individual Members.",
+    contact: "PIKOM secretariat · 03-7622 0079",
+  },
+  "ev-pikom-lead-2026": { tagline: "Inspire · Innovate · Invest" },
+};
 export const EVENTS_2026_11: PEvent[] = [
   pev("ev-pikom-funrun-2026", { title: "PIKOM Fun Run 2026", type: "Physical", date: "2026-10-31", dateLabel: "October 2026", venue: "Kuala Lumpur — venue to be confirmed", host: "PIKOM",
     description: "PIKOM's community fun run for members, their teams and families — a chance to meet the wider tech community outside the boardroom.", price: "Details from PIKOM" }),

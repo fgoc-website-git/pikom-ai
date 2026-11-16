@@ -3,12 +3,13 @@ import { PIKOM_JOIN_URL } from "@/lib/options";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useStore, today, canPostJob, PAYING, settingsOf, rfpStatus } from "@/lib/store";
+import { useStore, today, canPostJob, PAYING, settingsOf, rfpStatus, promotedEvent } from "@/lib/store";
 import { companies } from "@/lib/directory";
 import { Avatar, fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
 import { Carousel } from "@/components/Carousel";
 import { AboutBlocks } from "@/components/About";
+import { FeaturedEvent } from "@/components/EventPromo";
 
 export default function Home() {
   const { db, me, full } = useStore();
@@ -20,7 +21,8 @@ export default function Home() {
   const jobs = db.jobs.filter(j => !j.hidden).sort((a, b) => b.postedOn.localeCompare(a.postedOn)).slice(0, 4);
   const liveRfps = db.rfps.filter(r => !r.hidden).sort((a, b) => Number(rfpStatus(a) !== "Open") - Number(rfpStatus(b) !== "Open") || (rfpStatus(a) === "Open" ? a.closes.localeCompare(b.closes) : b.closes.localeCompare(a.closes)));
   const rfps = liveRfps.slice(0, 4);
-  const events = db.events.filter(e => e.status === "Published" && e.date >= today()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
+  const promo = promotedEvent(db, today());
+  const events = db.events.filter(e => e.status === "Published" && e.date >= today() && e.id !== promo?.id).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
   const featured = db.content.filter(c => c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 12);
   const people = db.users.filter(u => PAYING.includes(u.role)).length;
 
@@ -48,6 +50,8 @@ export default function Home() {
             <div key={l} className="stack" style={{ gap: 2, background: "#0E2647", padding: "22px 22px" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 30, fontWeight: 800 }}>{n}</span><span className="small" style={{ color: "#94A3B8" }}>{l}</span></div>))}
         </div>
       </div></section>
+
+      <div className="wrap" style={{ paddingTop: 32 }}><FeaturedEvent /></div>
 
       {!full && (
         <section className="wrap section">

@@ -20,7 +20,7 @@ function EventForm({ init, toast, onSaved }: { init: PEvent; toast: Toast; onSav
   const [dirty, setDirty] = useState(false);
   const set = (p: Partial<PEvent>) => { setE({ ...e, ...p }); setDirty(true); };
   return (
-    <form className="card stack" style={{ gap: 16 }} onSubmit={ev => { ev.preventDefault(); const id = e.id || newId(); saveEvent({ ...e, id, regClose: e.regClose || e.date }); setDirty(false); toast(e.status === "Published" ? "Event published" : "Event saved"); onSaved(id); }}>
+    <form className="card stack" style={{ gap: 16 }} onSubmit={ev => { ev.preventDefault(); const id = e.id || newId(); const clean = (a?: string[]) => a ? a.map(l => l.trim()).filter(Boolean) : a; saveEvent({ ...e, id, regClose: e.regClose || e.date, highlights: clean(e.highlights), agenda: clean(e.agenda), speakers: clean(e.speakers) }); setDirty(false); toast(e.status === "Published" ? "Event published" : "Event saved"); onSaved(id); }}>
       <div className="form-grid">
         <Field label="Event title" required value={e.title} onChange={x => set({ title: x.target.value })} />
         <fieldset><legend>Format</legend><div className="chips">{(["Online", "Physical", "Hybrid"] as EventType[]).map(t => <label key={t} className={`chip${e.type === t ? " on" : ""}`}><input type="radio" name="etype" checked={e.type === t} onChange={() => set({ type: t, capacity: t === "Online" ? null : e.capacity ?? 100 })} />{t}</label>)}</div></fieldset>
@@ -40,6 +40,20 @@ function EventForm({ init, toast, onSaved }: { init: PEvent; toast: Toast; onSav
         <label className="field"><span className="lbl">Status<Tip text={TIP.eventStatus} /></span><select className="select" value={e.status} onChange={x => set({ status: x.target.value as "Draft" })}><option>Draft</option><option>Published</option><option>Cancelled</option></select></label>
       </div>
       <Area label="Description" required value={e.description} onChange={x => set({ description: x.target.value })} />
+      <fieldset className="stack" style={{ gap: 14, border: "1px solid var(--line, #E2E8F0)", borderRadius: 12, padding: 16 }}>
+        <legend className="lbl" style={{ padding: "0 6px" }}>Event page & promotion</legend>
+        <label className="row" style={{ gap: 8, alignItems: "center" }}><input type="checkbox" checked={!!e.featured} onChange={x => set({ featured: x.target.checked })} /><b>Promote this event across the site</b><Tip text={TIP.promote} /></label>
+        <div className="form-grid">
+          <Field label="Tagline (optional)" placeholder="One line under the title" value={e.tagline || ""} onChange={x => set({ tagline: x.target.value })} />
+          <Field label="Registration link (optional)" tip={TIP.regUrl} type="url" placeholder="https://…" value={e.regUrl || ""} onChange={x => set({ regUrl: x.target.value })} />
+          <Field label="Registration button text (optional)" placeholder="Register on event website" value={e.regLabel || ""} onChange={x => set({ regLabel: x.target.value })} />
+          <Field label="Contact (optional)" placeholder="events@pikom.org.my · 03-7622 0079" value={e.contact || ""} onChange={x => set({ contact: x.target.value })} />
+        </div>
+        <Area label="Highlights (one per line)" rows={4} value={(e.highlights || []).join("\n")} onChange={x => set({ highlights: x.target.value.split("\n") })} />
+        <Area label="Programme (one per line: time | item)" rows={5} placeholder={"09:00 | Registration and networking\n09:30 | Opening keynote"} value={(e.agenda || []).join("\n")} onChange={x => set({ agenda: x.target.value.split("\n") })} />
+        <Area label="Speakers (one per line: name — role, company)" rows={4} placeholder="Jane Tan — CEO, Example Sdn Bhd" value={(e.speakers || []).join("\n")} onChange={x => set({ speakers: x.target.value.split("\n") })} />
+        <Area label="Who should attend (optional)" rows={2} value={e.whoShouldAttend || ""} onChange={x => set({ whoShouldAttend: x.target.value })} />
+      </fieldset>
       <Field label="After the event: slides / recording note (members only)" tip={TIP.materials} value={e.materials} onChange={x => set({ materials: x.target.value })} />
       <div className="row"><button className="btn primary">{init.id ? "Save changes" : "Create event"}</button>{dirty && <span className="small muted">Unsaved changes</span>}</div>
     </form>
@@ -88,7 +102,7 @@ export function EventsAdmin() {
           <tbody>{pg.rows.map(e => { const c = eventCounts(e); return (
             <tr key={e.id} className="row-link" onClick={rowGo(router, `/admin/events/${e.id}`)}><td><b>{e.title}</b><div className="small muted">{e.type} · {e.audience === "members" ? "members only" : "members and guests"}{e.perCompany ? ` · max ${e.perCompany}/company` : ""}</div></td><td className="nw">{fmtDate(e.date)}{e.date < t && <div className="small muted">Past</div>}</td>
               <td className="nw">{c.confirmed}{e.capacity ? ` / ${e.capacity}` : ""}{c.waitlist > 0 && <div className="small muted">+{c.waitlist} waitlist</div>}</td>
-              <td><span className={`badge ${e.status === "Published" ? "green" : e.status === "Cancelled" ? "red" : ""}`}>{e.status}</span></td>
+              <td><span className={`badge ${e.status === "Published" ? "green" : e.status === "Cancelled" ? "red" : ""}`}>{e.status}</span>{e.featured && e.date >= t && <span className="badge orange" style={{ marginLeft: 6 }}>Promoted</span>}</td>
               <td><Link className="btn sm" href={`/admin/events/${e.id}`}>Open</Link></td></tr>); })}</tbody>
         </table></div>
         <Pager {...pg} />
