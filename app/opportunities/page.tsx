@@ -221,7 +221,7 @@ function Jobs() {
         <div className="stack" style={{ flex: "999 1 560px", minWidth: 0, gap: 14 }}>
           <div className="chips" role="group" aria-label="Category">{["All", ...JOB_CATEGORIES].map(c => <button key={c} className={`chip${cat === c ? " on" : ""}`} aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}</div>
           <span className="count">{shown.length} role{shown.length === 1 ? "" : "s"}</span>
-          {shown.length === 0 && <div className="empty">No jobs match these filters.</div>}
+          {shown.length === 0 && <div className="empty">{db.jobs.filter(j => !j.hidden).length === 0 ? "No jobs posted yet. Company admins and content admins at PIKOM member companies can post AI roles here." : "No jobs match these filters."}</div>}
           {shown.map(j => {
             const org = db.orgs.find(o => o.id === j.orgId);
             return (

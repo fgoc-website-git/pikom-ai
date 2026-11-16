@@ -87,7 +87,7 @@ export default function Home() {
           <div className="list">{jobs.map(j => (
             <Link key={j.id} href="/opportunities?tab=jobs" style={{ display: "flex", flexDirection: "column", gap: 2, padding: "12px 0", color: "var(--ink)" }}>
               <span style={{ fontWeight: 600 }}>{j.title}</span><span className="small muted">{j.company} · {j.location} · {j.mode}</span>
-            </Link>))}</div>
+            </Link>))}{jobs.length === 0 && <p className="small muted" style={{ padding: "12px 0" }}>No jobs posted yet. Company admins and content admins at PIKOM member companies can post AI roles here.</p>}</div>
         </div>
       </section>
 

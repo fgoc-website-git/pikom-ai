@@ -130,8 +130,55 @@ export function normalize(d: DB): DB {
     out.content = [...RESEARCH_2026_11.filter(c => !have.has(c.id)), ...out.content.filter(c => !(c.kind === "research" && samples.includes(c.title)))];
     out.migrations = [...out.migrations!, "research-2026-11"];
   }
+  // 16 Nov 2026: verified data only. Keep company and user data; remove sample jobs; sample policy/news replaced with sourced items; unverified event wording removed.
+  if (!out.migrations!.includes("verified-only-2026-11")) {
+    out.jobs = out.jobs.filter(j => !/sample/i.test(j.title));
+    const oldTitles = ["Malaysia AI Governance Bill", "BNM guidelines on AI in financial services", "PDPA amendments for AI-generated data", "National AI Action Plan 2026–2030 published", "Stanford AI Index 2026", "Economic & Digital Job Market Outlook", "Digital Economy Strategic Outlook"];
+    const have = new Set(out.content.map(c => c.id));
+    out.content = [...VERIFIED_CONTENT_2026_11.filter(c => !have.has(c.id)), ...out.content.filter(c => !oldTitles.includes(c.title))];
+    const fix: Record<string, [string, string][]> = {
+      "ev-pikom-funrun-2026": [["PIKOM's community fun run for members, their teams and families — a chance to meet the wider tech community outside the boardroom.", "PIKOM Fun Run 2026. Date, venue and registration details to be confirmed by PIKOM."]],
+      "ev-members-meet-4-2026": [["The fourth AI Xchange members' meet of 2026: member updates, AI policy news and networking. Register here to hold your place — we'll confirm the date and venue by email.", "AI Xchange Members Meet (4). Date, venue and programme to be confirmed by PIKOM. Register here to hold your place — we'll confirm the details by email."]],
+    };
+    out.events = out.events.map(e => {
+      let x = e;
+      for (const [o, n] of fix[e.id] || []) if (x.description === o) x = { ...x, description: n };
+      if (e.id === "ev-members-meet-4-2026" && x.tagline === "Member updates, AI policy news and networking") x = { ...x, tagline: undefined, highlights: undefined, whoShouldAttend: undefined, contact: undefined };
+      if (e.id === "ev-gbs-global-summit-2026" && x.whoShouldAttend === "GBS and shared-services leaders, technology and AI providers, investors and policymakers.") x = { ...x, whoShouldAttend: "Industry leaders, innovators, policymakers and decision-makers in Global Business Services." };
+      return x;
+    });
+    out.announcements = out.announcements.map(a => a.text.startsWith("Preview of AI Xchange for PIKOM review") ? { ...a, text: "Preview of AI Xchange for PIKOM review — member companies and accounts shown are samples." } : a);
+    // Ritesh (super admin) owns the current shared tenders and RFPs.
+    out.rfps = out.rfps.map(r => r.postedBy ? r : { ...r, postedBy: "ritesh.devarajan@forest-interactive.com" });
+    out.migrations = [...out.migrations!, "verified-only-2026-11"];
+  }
   return out;
 }
+const vc = (id: string, kind: ContentKind, title: string, source: string, date: string, summary: string, url: string, extra: Partial<Content> = {}): Content => ({
+  id, kind, title, source, date, summary, url, body: "", file: "", policyStatus: "", featured: false, published: true, ...extra,
+});
+/** Sourced policy and news items (checked 16 Nov 2026). */
+export const VERIFIED_CONTENT_2026_11: Content[] = [
+  vc("pv-ai-governance-bill-2026", "policy", "Proposed AI Governance Bill — public consultation", "National AI Office (NAIO)", "2026-07-10",
+    "NAIO consulted from 10 to 31 July 2026 on Malaysia's first AI law. The proposal covers AI systems across their lifecycle and is expected in Parliament by Q1 2027.",
+    "https://www.bakermckenzie.com/en/insight/publications/2026/07/malaysia-public-consultation-on-the-ai-governance-bill",
+    { policyStatus: "Consultation closed", featured: true, highlights: ["Three risk tiers: unacceptable (prohibited), high and low", "A Central AI Authority for safety, enforcement and enablement", "Incident reporting by AI developers and deployers", "A supervised AI Sandbox for testing"] }),
+  vc("pv-pdpd-ai-framework-2026", "policy", "Proposed AI and Personal Data Protection Framework — consultation", "Personal Data Protection Department (PDPD)", "2026-10-05",
+    "How organisations that develop, buy or deploy AI should comply with the PDPA 2010 when processing personal data: lawful basis, testing, third-party AI and cross-border transfers, data subject rights, security and governance. Submissions closed 23 October 2026.",
+    "https://www.bakermckenzie.com/en/insight/publications/2026/10/malaysia-consultation-on-proposed-ai-and-personal-data-protection-framework",
+    { policyStatus: "Consultation closed" }),
+  vc("pv-bnm-ai-financial-2025", "policy", "Discussion Paper on AI in the Malaysian Financial Sector", "Bank Negara Malaysia", "2025-08-05",
+    "Bank Negara's proposed approach to responsible AI adoption by financial institutions. Feedback closed 17 October 2025.",
+    "https://www.bnm.gov.my/-/dp-aifs25", { policyStatus: "Feedback closed" }),
+  vc("nv-national-ai-action-plan", "news", "National AI Action Plan 2026–2030 (AI Nation 2030)", "AI Malaysia / National AI Office", "2026-07-01",
+    "Malaysia's AI roadmap: 28 initiatives — 14 impact engines for sectors and 14 foundation enablers such as talent, research, data, compute and governance.",
+    "https://ai.gov.my/faq/national-ai-action-plan-2026-2030-fact-sheet/",
+    { dateLabel: "2026", highlights: ["300,000–500,000 new AI-related jobs by 2030", "Top 10 in global AI readiness by 2030", "0.8–1.2 percentage points of extra GDP growth a year"] }),
+  vc("nv-stanford-ai-index-2026", "news", "The 2026 AI Index Report", "Stanford HAI", "2026-04-01",
+    "Stanford's annual report on global AI research, investment, adoption and policy.",
+    "https://hai.stanford.edu/ai-index/2026-ai-index-report",
+    { dateLabel: "2026", highlights: ["A record 362 reported AI incidents in 2025", "Generative AI reached 53% adoption within three years"] }),
+];
 const PIKOM_RESEARCH_PAGE = "https://pikom.org.my/research-white-paper/";
 export const RESEARCH_2026_11: Content[] = [
   { id: "rs-econ-outlook-2026-07", kind: "research", title: "Malaysia Economic Outlook Review — July 2026", source: "PIKOM Research", date: "2026-07-21", dateLabel: "July 2026",
@@ -165,20 +212,14 @@ export const EVENT_DETAILS_2026_11: Record<string, Partial<PEvent>> = {
     featured: true, tagline: "Shaping the future of Global Business Services",
     regUrl: "https://forms.gle/zvS5XBovhRjPqSWT8", regLabel: "Register interest",
     highlights: ["Latest trends shaping Global Business Services (GBS) worldwide", "Meet decision-makers, innovators and policymakers", "GBS Awards — celebrating excellence in the industry", "Register interest for early updates and invitations"],
-    whoShouldAttend: "GBS and shared-services leaders, technology and AI providers, investors and policymakers.",
+    whoShouldAttend: "Industry leaders, innovators, policymakers and decision-makers in Global Business Services.",
     contact: "events@gbsmalaysia.org.my · PIKOM 03-7622 0079",
-  },
-  "ev-members-meet-4-2026": {
-    tagline: "Member updates, AI policy news and networking",
-    highlights: ["Updates from the PIKOM AI Chapter", "AI policy and governance news", "Networking with other AI Xchange members"],
-    whoShouldAttend: "People from PIKOM member companies and PIKOM Individual Members.",
-    contact: "PIKOM secretariat · 03-7622 0079",
   },
   "ev-pikom-lead-2026": { tagline: "Inspire · Innovate · Invest" },
 };
 export const EVENTS_2026_11: PEvent[] = [
   pev("ev-pikom-funrun-2026", { title: "PIKOM Fun Run 2026", type: "Physical", date: "2026-10-31", dateLabel: "October 2026", venue: "Kuala Lumpur — venue to be confirmed", host: "PIKOM",
-    description: "PIKOM's community fun run for members, their teams and families — a chance to meet the wider tech community outside the boardroom.", price: "Details from PIKOM" }),
+    description: "PIKOM Fun Run 2026. Date, venue and registration details to be confirmed by PIKOM.", price: "Details from PIKOM" }),
   pev("ev-asocio-ai-summit-2026", { title: "ASOCIO Digital & AI Summit 2026", type: "Physical", date: "2026-10-05", dateLabel: "5–7 Oct 2026", venue: "Jakarta, Indonesia", host: "ASOCIO · hosted by APTIKNAS",
     description: "Asia-Oceania's digital and AI summit for government leaders, industry, academia and C-level executives: technology advances, business transformation, responsible AI governance and regional collaboration. Includes the ASOCIO Digital AI Award 2026.",
     url: "https://asocio.org/event.php", external: true }),
@@ -189,7 +230,7 @@ export const EVENTS_2026_11: PEvent[] = [
     description: "Industry leaders, innovators and policymakers shaping Global Business Services meet to explore what's next for GBS, connect with decision-makers and celebrate GBS excellence at the awards. Questions: events@gbsmalaysia.org.my.",
     price: "Register interest on the event site", url: "https://pikom.org.my/gbsglobalsummit/", external: true }),
   pev("ev-members-meet-4-2026", { title: "AI Xchange Members Meet (4)", type: "Physical", date: "2026-12-31", dateLabel: "December 2026 · date to be confirmed", venue: "Kuala Lumpur — venue to be confirmed", host: "PIKOM AI Chapter",
-    description: "The fourth AI Xchange members' meet of 2026: member updates, AI policy news and networking. Register here to hold your place — we'll confirm the date and venue by email.", audience: "members", capacity: 100, perCompany: 3, price: "Free for members" }),
+    description: "AI Xchange Members Meet (4). Date, venue and programme to be confirmed by PIKOM. Register here to hold your place — we'll confirm the details by email.", audience: "members", capacity: 100, perCompany: 3, price: "Free for members" }),
 ];
 export const TENDERS_2026_11: Rfp[] = [
   tot("150633071", "AI software subscription — TransAI literature transformation project", "Dewan Bahasa dan Pustaka (DBP)", "Government", "Goods", "2026-10-08", "2026-10-12", "PT/54709/2026/PERKHIDMATAN", "MYR 14,575.68",
