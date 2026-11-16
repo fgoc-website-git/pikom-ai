@@ -131,7 +131,7 @@ export function EventDetail({ id, toast }: { id: string; toast: Toast }) {
 }
 
 /* ---------------- Insights ---------------- */
-const KINDS: [ContentKind, string][] = [["policy", "Policy & governance"], ["research", "PIKOM research"], ["news", "News"]];
+const KINDS: [ContentKind, string][] = [["policy", "Policy & governance"], ["research", "Research / White Papers"], ["news", "News"]];
 const blankContent = (): Content => ({ id: "", kind: "policy", title: "", summary: "", body: "", source: "PIKOM", url: "", file: "", date: today(), policyStatus: "", featured: false, published: false });
 
 function ContentForm({ init, toast, onSaved }: { init: Content; toast: Toast; onSaved: (id: string) => void }) {
@@ -140,7 +140,7 @@ function ContentForm({ init, toast, onSaved }: { init: Content; toast: Toast; on
   const [dirty, setDirty] = useState(false);
   const set = (p: Partial<Content>) => { setC({ ...c, ...p }); setDirty(true); };
   return (
-    <form className="card stack" style={{ gap: 16 }} onSubmit={e => { e.preventDefault(); const id = c.id || newId(); saveContent({ ...c, id }); setDirty(false); toast(c.published ? "Published" : "Saved as draft"); onSaved(id); }}>
+    <form className="card stack" style={{ gap: 16 }} onSubmit={e => { e.preventDefault(); const id = c.id || newId(); saveContent({ ...c, id, highlights: c.highlights?.map(l => l.trim()).filter(Boolean) }); setDirty(false); toast(c.published ? "Published" : "Saved as draft"); onSaved(id); }}>
       <div className="form-grid">
         <label className="field"><span className="lbl">Section</span><select className="select" value={c.kind} onChange={e => set({ kind: e.target.value as ContentKind })}>{KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
         <Field label="Title" required value={c.title} onChange={e => set({ title: e.target.value })} />
@@ -148,9 +148,13 @@ function ContentForm({ init, toast, onSaved }: { init: Content; toast: Toast; on
         <Field label="Date" type="date" value={c.date} onChange={e => set({ date: e.target.value })} />
         {c.kind === "policy" && <Field label="Policy status" tip={TIP.policyStatus} placeholder="In consultation, Active, Passed…" value={c.policyStatus} onChange={e => set({ policyStatus: e.target.value })} />}
         <Field label="Link (optional)" type="url" value={c.url} onChange={e => set({ url: e.target.value })} />
+        <Field label="PDF link (optional)" type="url" placeholder="https://…/report.pdf" value={c.fileUrl || ""} onChange={e => set({ fileUrl: e.target.value })} hint="Clicking the cover, title or Download PDF opens this file" />
+        <Field label="Cover image link (optional)" placeholder="https://… or /research/cover.jpg" value={c.image || ""} onChange={e => set({ image: e.target.value })} />
+        <Field label="Date shown (optional)" placeholder="e.g. July 2026" value={c.dateLabel || ""} onChange={e => set({ dateLabel: e.target.value })} />
         <label className="field"><span className="lbl">Attach PDF (optional)</span><input className="input" style={{ paddingTop: 9 }} type="file" accept="application/pdf" onChange={e => set({ file: e.target.files?.[0]?.name || "" })} />{c.file && <span className="hint">Attached: {c.file} (downloads switch on once file storage is added)</span>}</label>
       </div>
       <Area label="Summary (shown on cards)" required maxLength={400} value={c.summary} onChange={e => set({ summary: e.target.value })} hint={`${c.summary.length}/400`} />
+      <Area label="Key findings (optional, one per line)" rows={4} value={(c.highlights || []).join("\n")} onChange={e => set({ highlights: e.target.value.split("\n") })} />
       <Area label="More detail (optional)" value={c.body} onChange={e => set({ body: e.target.value })} />
       <div className="row">
         <label className="row" style={{ gap: 8 }}><input type="checkbox" checked={c.featured} onChange={e => set({ featured: e.target.checked })} />Feature on the home page<Tip text={TIP.featured} /></label>

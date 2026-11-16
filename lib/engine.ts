@@ -85,6 +85,8 @@ export type ContentKind = "policy" | "research" | "news";
 export interface Content {
   id: string; kind: ContentKind; title: string; summary: string; body: string; source: string; url: string; file: string;
   date: string; policyStatus: string; featured: boolean; published: boolean;
+  /** Cover image (path or URL), direct PDF link (opens/downloads on click), date shown e.g. "July 2026", key findings. */
+  image?: string; fileUrl?: string; dateLabel?: string; highlights?: string[];
 }
 export interface Announcement { id: string; text: string; link: string; active: boolean; }
 export interface LogEntry { at: string; who: string; what: string; }
@@ -121,8 +123,30 @@ export function normalize(d: DB): DB {
     });
     out.migrations = [...out.migrations!, "events-2026-11b"];
   }
+  // 16 Nov 2026: PIKOM Research / White Papers from pikom.org.my/research-white-paper replace the sample research items.
+  if (!out.migrations!.includes("research-2026-11")) {
+    const have = new Set(out.content.map(c => c.id));
+    const samples = ["Economic & Digital Job Market Outlook", "Digital Economy Strategic Outlook"];
+    out.content = [...RESEARCH_2026_11.filter(c => !have.has(c.id)), ...out.content.filter(c => !(c.kind === "research" && samples.includes(c.title)))];
+    out.migrations = [...out.migrations!, "research-2026-11"];
+  }
   return out;
 }
+const PIKOM_RESEARCH_PAGE = "https://pikom.org.my/research-white-paper/";
+export const RESEARCH_2026_11: Content[] = [
+  { id: "rs-econ-outlook-2026-07", kind: "research", title: "Malaysia Economic Outlook Review — July 2026", source: "PIKOM Research", date: "2026-07-21", dateLabel: "July 2026",
+    summary: "A sector-by-sector review of Malaysia's Q2 2026 economic performance, structural risks and policy landscape, drawing on DOSM and Bank Negara data, with a business outlook.",
+    highlights: ["Q2 2026 GDP grew 5.8% year on year (advance estimate), up from 5.4% in Q1", "H1 2026 growth of 5.6%, against 4.5% in H1 2025", "June 2026 inflation eased to 1.9%", "BNM forecasts 4.0–5.0% growth for 2026; the review sees the upper half as plausible"],
+    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/PIKOM/Malaysia_Economic_Outlook_Review-July2026.pdf", image: "/research/econ-outlook-jul-2026.jpg", policyStatus: "", featured: true, published: true },
+  { id: "rs-mv-aig-2026", kind: "research", title: "A Minimum Viable AI Governance (MV-AIG)", source: "PIKOM Oversight Committee", date: "2026-06-01", dateLabel: "June 2026",
+    summary: "A lightweight AI governance model for small and micro organisations that use AI rather than build it, focused on everyday uses like document analysis and meeting transcription.",
+    highlights: ["Classify every AI tool by impact (low, medium, high) before use", "Clear prohibited uses, e.g. decisions about people without human review", "Real AI incident case studies", "A three-phase roadmap: establish, operationalise, maintain"],
+    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/Research/MV_AIG_V5.pdf", image: "/research/mv-aig-2026.jpg", policyStatus: "", featured: true, published: true },
+  { id: "rs-cyber-resilience-2026", kind: "research", title: "Beyond Compliance: The State of Cyber Resilience in Malaysia 2026", source: "Cybersecurity by PIKOM", date: "2026-04-01", dateLabel: "April 2026",
+    summary: "PIKOM's national baseline report from a March 2026 survey of mainly PIKOM members: incidents and threats, Zero Trust, budgets and staffing, third-party risk, AI and quantum readiness and the Cyber Security Act 2024, with recommendations.",
+    highlights: ["35.9% had at least one successful cyber incident in 2024–2025", "51.3% have annual cyber budgets below RM250,000", "78.8% have five or fewer dedicated cyber staff"],
+    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/2026/Cyber_Resilience_in_Malaysia_2026.pdf", image: "/research/cyber-resilience-2026.jpg", policyStatus: "", featured: true, published: true },
+];
 const tot = (ref: string, title: string, buyer: string, sector: string, procurementType: string, publishedOn: string, closes: string, docRef: string, budget: string, summary: string, description: string): Rfp => ({
   id: "tot" + ref.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 16), ref: /^\d+$/.test(ref) ? `TOT ${ref}` : ref, title, buyer, orgId: null, sector, type: "Public tender", budget, closes, description, summary, contactEmail: "",
   status: "Open", postedOn: publishedOn, postedBy: "", poster: "PIKOM", hidden: false, docRef, country: "Malaysia", noticeType: "Tender",

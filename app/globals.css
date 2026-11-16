@@ -388,3 +388,12 @@ th .tip-btn { width: 15px; height: 15px; font-size: 10px; }
 .sp-av { width: 42px; height: 42px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 700; display: grid; place-items: center; flex: none; }
 .share { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid #E2E8F0; padding-top: 14px; }
 @media (max-width: 900px) { .event-layout { grid-template-columns: 1fr; } .event-side { position: static; } }
+
+/* ---- Research / white papers ---- */
+.grid3 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.pub-cover { display: block; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: #E2E8F0; margin-bottom: 6px; box-shadow: 0 6px 18px rgba(15,23,42,.12); transition: transform .15s, box-shadow .15s; }
+.pub-cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+a.pub-cover:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(15,23,42,.18); }
+.small-ticks li { font-size: 14px; }
+.mc-cover { display: block; height: 150px; margin: -4px -4px 4px; border-radius: 8px; overflow: hidden; background: #E2E8F0; }
+.mc-cover img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }

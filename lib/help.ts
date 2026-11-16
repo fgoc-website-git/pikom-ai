@@ -66,7 +66,7 @@ export const PAGE_HELP: Record<string, string[]> = {
   person: ["One person's account: company and role, events, and admin actions."],
   events: ["PIKOM events. Members register on the Events page.", "Open an event to edit it, see attendees, mark attendance and export the list."],
   event: ["Edit the event, then manage attendees. Changes show on the Events page straight away once published."],
-  insights: ["Policy & governance, PIKOM research and news. Published items show on the Insights page; featured ones lead the home page carousel."],
+  insights: ["Policy & governance, Research / White Papers and news. Published items show on the Insights page; featured ones lead the home page carousel."],
   insight: ["Edit the item. Untick Published to keep it as a draft."],
   announcements: ["The banner under the menu on every page. Show one at a time."],
   posts: ["Everything members have posted. Hide anything inappropriate; jobs close automatically after 30 days."],
