@@ -8,7 +8,7 @@ import { Avatar } from "./ui";
 import { Icon } from "./Icons";
 import { PIKOM_JOIN_URL } from "@/lib/options";
 
-const NAV = [["/members", "Members"], ["/opportunities", "Opportunities"], ["/events", "Events"], ["/insights", "Insights"]] as const;
+const NAV = [["/members", "Members"], ["/opportunities", "Opportunities"], ["/events", "Events"], ["/insights", "Insights"], ["/about", "About"]] as const;
 
 /** Round icon button; its label lights up underneath on hover or keyboard focus. */
 function IconLink({ href, icon, label, active }: { href: string; icon: string; label: string; active?: boolean }) {
@@ -96,7 +96,7 @@ export function Footer() {
   const st = settingsOf(db);
   const year = new Date().getFullYear();
   const cols: [string, [string, string, boolean?][]][] = [
-    ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"]]],
+    ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"], ["/about", "About the AI Chapter"]]],
     ["Membership", [["/membership", "Membership & access"], [PIKOM_JOIN_URL, "Join PIKOM", true], ["/register", "Activate member access"], ["/signin", "Sign in"], ["https://pikom.org.my", "pikom.org.my", true]]],
     ["Help", [["/membership#contact", "Contact the secretariat"], ["/privacy", "Privacy notice (PDPA 2010)"], ["/terms", "Terms of use"]]],
   ];

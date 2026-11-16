@@ -34,6 +34,9 @@ function EventForm({ init, toast, onSaved }: { init: PEvent; toast: Toast; onSav
         <Field label="Hosted by" value={e.host} onChange={x => set({ host: x.target.value })} hint="PIKOM or the member company running it" />
         <Field label="Price note" value={e.price} onChange={x => set({ price: x.target.value })} hint="Payment is handled outside the site" />
         <Field label="Registration closes" tip={TIP.regClose} type="date" value={e.regClose} onChange={x => set({ regClose: x.target.value })} />
+        <Field label="Date shown (optional)" placeholder="e.g. 5–7 Oct 2026 or December 2026 · date TBC" value={e.dateLabel || ""} onChange={x => set({ dateLabel: x.target.value })} hint="Use for multi-day events or dates not yet fixed" />
+        <Field label="Event website (optional)" type="url" placeholder="https://…" value={e.url || ""} onChange={x => set({ url: x.target.value })} />
+        <label className="field"><span className="lbl">Registration</span><select className="select" value={e.external ? "ext" : "here"} onChange={x => set({ external: x.target.value === "ext" })}><option value="here">On AI Xchange (seats, waitlist, attendees)</option><option value="ext">On the event website</option></select></label>
         <label className="field"><span className="lbl">Status<Tip text={TIP.eventStatus} /></span><select className="select" value={e.status} onChange={x => set({ status: x.target.value as "Draft" })}><option>Draft</option><option>Published</option><option>Cancelled</option></select></label>
       </div>
       <Area label="Description" required value={e.description} onChange={x => set({ description: x.target.value })} />

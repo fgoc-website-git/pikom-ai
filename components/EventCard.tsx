@@ -26,17 +26,19 @@ export function EventCard({ e }: { e: PEvent }) {
   return (
     <article className="card stack" style={{ gap: 10 }}>
       <div className="row" style={{ gap: 6 }}>{typeBadge(e.type)}{membersOnly ? <span className="badge">Members only <Tip text={TIP.audience} /></span> : <span className="badge">Open to all <Tip text={TIP.audience} /></span>}{e.status === "Cancelled" && <span className="badge red">Cancelled</span>}</div>
-      <span className="small" style={{ fontWeight: 600, color: "var(--blue)" }}>{fmtDate(e.date)} · {e.time}</span>
+      <span className="small" style={{ fontWeight: 600, color: "var(--blue)" }}>{e.dateLabel || fmtDate(e.date)}{e.time ? ` · ${e.time}` : ""}</span>
       <h2 className="h3">{e.title}</h2>
       <p className="small muted" style={{ fontSize: 14 }}>{e.description}</p>
       <dl className="kv" style={{ gridTemplateColumns: "90px 1fr", fontSize: 13 }}>
         <dt>Host</dt><dd>{e.host || "PIKOM"}</dd>
         <dt>Where</dt><dd>{e.type === "Online" ? "Online" : e.venue}</dd>
         <dt>Price</dt><dd>{e.price}</dd>
-        {!past && <><dt>Seats <Tip text={TIP.capacity} /></dt><dd>{left == null ? "No limit" : left > 0 ? `${left} of ${e.capacity} left` : `Full · ${waitlist} on waitlist`}{e.perCompany ? ` · max ${e.perCompany} per company` : ""}</dd></>}
-        {past && <><dt>Attended</dt><dd>{confirmed} registered</dd></>}
+        {!past && !e.external && <><dt>Seats <Tip text={TIP.capacity} /></dt><dd>{left == null ? "No limit" : left > 0 ? `${left} of ${e.capacity} left` : `Full · ${waitlist} on waitlist`}{e.perCompany ? ` · max ${e.perCompany} per company` : ""}</dd></>}
+        {past && !e.external && <><dt>Attended</dt><dd>{confirmed} registered</dd></>}
+        {e.external && <><dt>Registration</dt><dd>On the event website</dd></>}
       </dl>
-      {past ? (e.materials ? (fullAccess(me) ? <span className="badge green" style={{ alignSelf: "flex-start" }}>{e.materials}</span> : <span className="badge" style={{ alignSelf: "flex-start" }}>Slides & recording: members only</span>) : null)
+      {e.url && (e.external || past) && <a className={`btn sm${e.external && !past ? " primary" : ""}`} style={{ alignSelf: "flex-start", marginTop: "auto" }} href={e.url} target="_blank" rel="noreferrer">{e.external && !past ? "Register on event website ↗" : "Event website ↗"}</a>}
+      {e.external ? null : past ? (e.materials ? (fullAccess(me) ? <span className="badge green" style={{ alignSelf: "flex-start" }}>{e.materials}</span> : <span className="badge" style={{ alignSelf: "flex-start" }}>Slides & recording: members only</span>) : null)
       : e.status === "Cancelled" ? null
       : mine ? (
         <div className="stack" style={{ gap: 8, marginTop: "auto" }}>

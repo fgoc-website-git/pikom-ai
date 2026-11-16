@@ -8,6 +8,7 @@ import { companies } from "@/lib/directory";
 import { Avatar, fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
 import { Carousel } from "@/components/Carousel";
+import { AboutBlocks } from "@/components/About";
 
 export default function Home() {
   const { db, me, full } = useStore();
@@ -60,6 +61,8 @@ export default function Home() {
               <Link className="btn sm" style={{ alignSelf: "flex-start" }} href="/register">Create a free account</Link></div>
           </div>
         </section>)}
+
+      <AboutBlocks compact />
 
       <section className="wrap section">
         <div className="section-head"><div><h2 className="h2">Upcoming events</h2></div><Link href="/events" className="more">All events →</Link></div>

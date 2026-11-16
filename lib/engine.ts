@@ -72,6 +72,10 @@ export interface PEvent {
   id: string; title: string; type: EventType; date: string; time: string; venue: string; link: string;
   capacity: number | null; perCompany: number | null; audience: "members" | "all"; price: string; description: string;
   regClose: string; status: "Published" | "Draft" | "Cancelled"; materials: string; registrations: Registration[]; host: string;
+  /** Shown instead of the formatted date, e.g. "5–7 Oct 2026" or "December 2026 · date TBC". */
+  dateLabel?: string;
+  /** Event website. With external=true, registration happens there instead of on AI Xchange. */
+  url?: string; external?: boolean;
 }
 export type ContentKind = "policy" | "research" | "news";
 export interface Content {
@@ -94,6 +98,15 @@ export function normalize(d: DB): DB {
     out.rfps = [...TENDERS_2026_11.filter(t => !have.has(t.id)), ...out.rfps];
     out.migrations = [...out.migrations!, "tenders-2026-11"];
   }
+  // 16 Nov 2026: real PIKOM events replace the sample events; sample RFPs removed.
+  if (!out.migrations!.includes("events-2026-11")) {
+    const isSample = (t: string) => /sample/i.test(t);
+    const have = new Set(out.events.map(e => e.id));
+    out.events = [...EVENTS_2026_11.filter(e => !have.has(e.id)), ...out.events.filter(e => !isSample(e.title))];
+    out.rfps = out.rfps.filter(r => !isSample(r.title));
+    out.announcements = out.announcements.map(a => a.text.startsWith("Preview of AI Xchange for PIKOM review") || a.text.startsWith("This is a demo") ? { ...a, text: "Preview of AI Xchange for PIKOM review — job listings shown are samples." } : a);
+    out.migrations = [...out.migrations!, "events-2026-11"];
+  }
   return out;
 }
 const tot = (ref: string, title: string, buyer: string, sector: string, procurementType: string, publishedOn: string, closes: string, docRef: string, budget: string, summary: string, description: string): Rfp => ({
@@ -102,6 +115,24 @@ const tot = (ref: string, title: string, buyer: string, sector: string, procurem
   competition: "ICB", publishedOn, emd: "Refer document", ownership: "Public", procurementType, financier: "Self financed",
   source: "Tenders On Time", sourceUrl: "https://www.tendersontime.com",
 });
+const pev = (id: string, p: Partial<PEvent> & Pick<PEvent, "title" | "type" | "date" | "venue" | "description" | "host">): PEvent => ({
+  id, time: "", link: "", capacity: null, perCompany: null, audience: "all", price: "See event website", regClose: p.date, status: "Published", materials: "", registrations: [], ...p,
+});
+export const EVENTS_2026_11: PEvent[] = [
+  pev("ev-pikom-funrun-2026", { title: "PIKOM Fun Run 2026", type: "Physical", date: "2026-10-31", dateLabel: "October 2026", venue: "Kuala Lumpur — venue to be confirmed", host: "PIKOM",
+    description: "PIKOM's community fun run for members, their teams and families — a chance to meet the wider tech community outside the boardroom.", price: "Details from PIKOM" }),
+  pev("ev-asocio-ai-summit-2026", { title: "ASOCIO Digital & AI Summit 2026", type: "Physical", date: "2026-10-05", dateLabel: "5–7 Oct 2026", venue: "Jakarta, Indonesia", host: "ASOCIO · hosted by APTIKNAS",
+    description: "Asia-Oceania's digital and AI summit for government leaders, industry, academia and C-level executives: technology advances, business transformation, responsible AI governance and regional collaboration. Includes the ASOCIO Digital AI Award 2026.",
+    url: "https://asocio.org/event.php", external: true }),
+  pev("ev-pikom-lead-2026", { title: "PIKOM LEAD 2026 — Leading Malaysia's Digital Economy into the AI Era", type: "Physical", date: "2026-11-03", venue: "CCEC The Vertical, Bangsar South, Kuala Lumpur", host: "PIKOM",
+    description: "PIKOM's C-level leadership summit (Inspire · Innovate · Invest) on the business, investment and policy choices of Malaysia's AI-era digital economy, for CEOs, CIOs/CTOs, investors and public-sector leaders. LEAD 2025 drew 460 delegates.",
+    url: "https://pikom.org.my/LEAD/", external: true }),
+  pev("ev-gbs-global-summit-2026", { title: "GBS Global Summit & Awards 2026", type: "Physical", date: "2026-11-18", venue: "KLGCC Convention Centre, 1A Jalan Bukit Kiara 1, Bukit Kiara, Kuala Lumpur", host: "GBS Malaysia · PIKOM",
+    description: "Industry leaders, innovators and policymakers shaping Global Business Services meet to explore what's next for GBS, connect with decision-makers and celebrate GBS excellence at the awards. Questions: events@gbsmalaysia.org.my.",
+    price: "Register interest on the event site", url: "https://pikom.org.my/gbsglobalsummit/", external: true }),
+  pev("ev-members-meet-4-2026", { title: "AI Xchange Members Meet (4)", type: "Physical", date: "2026-12-31", dateLabel: "December 2026 · date to be confirmed", venue: "Kuala Lumpur — venue to be confirmed", host: "PIKOM AI Chapter",
+    description: "The fourth AI Xchange members' meet of 2026: member updates, AI policy news and networking. Register here to hold your place — we'll confirm the date and venue by email.", audience: "members", capacity: 100, perCompany: 3, price: "Free for members" }),
+];
 export const TENDERS_2026_11: Rfp[] = [
   tot("150633071", "AI software subscription — TransAI literature transformation project", "Dewan Bahasa dan Pustaka (DBP)", "Government", "Goods", "2026-10-08", "2026-10-12", "PT/54709/2026/PERKHIDMATAN", "MYR 14,575.68",
     "Dewan Bahasa dan Pustaka (DBP) issued a tender for an AI software subscription for its TransAI (Artificial Intelligence Literature Transformation) project.",
