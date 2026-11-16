@@ -30,7 +30,6 @@ function AccountInner() {
     ["profile", "Profile", "How other members see you"], ["security", "Login & security", "Password and devices"], ["privacy", "Privacy", "What's shown in the directory"],
     ["notifications", "Notifications", "Emails you get"], ["events", "My events", "Registrations"], ...(me.role === "individual" ? [["posts", "My RFPs", "Your posts"]] as [Tab, string, string][] : []),
   ];
-  const renewal = myOrg?.renewal || db.individuals.find(i => i.email === me.email)?.renewal;
   return (
     <div className="wrap page-head">
       {welcome && <div className="alert ok" style={{ marginBottom: 16 }}>Welcome to AI Xchange, {me.name.split(" ")[0]}. {me.role === "main" ? <>As company admin, start with <Link href="/company">My company</Link>: complete the profile other members see, and add your colleagues.</> : "Add a few details so other members know who you are."}</div>}
@@ -45,7 +44,6 @@ function AccountInner() {
           </div>
         </div>
         <div className="stack" style={{ gap: 8, alignItems: "flex-end" }}>
-          {renewal && <div className="alert warn small">PIKOM membership renews <b>{fmtDate(renewal)}</b>. Renewals are handled by the PIKOM secretariat.</div>}
           {myOrg && <Link className="btn" href="/company">{me.role === "member" ? "View my company" : "Manage my company"} →</Link>}
         </div>
       </div>

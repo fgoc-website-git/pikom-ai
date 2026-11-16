@@ -257,8 +257,6 @@ export function Reports() {
   const { db, seatsUsed } = useStore();
   const now = Date.now();
   const active30 = db.users.filter(u => u.lastSignIn && now - +new Date(u.lastSignIn.replace(" ", "T")) < 30 * 864e5).length;
-  const due = [...db.orgs.map(o => ({ name: o.name, renewal: o.renewal, kind: "Company" })), ...db.individuals.map(i => ({ name: i.name, renewal: i.renewal, kind: "Individual" }))]
-    .filter(x => x.renewal && +new Date(x.renewal) >= now - 864e5 && +new Date(x.renewal) - now < 90 * 864e5).sort((a, b) => a.renewal.localeCompare(b.renewal));
   const byRole = (["main", "editor", "member", "individual", "guest"] as const).map(r => [roleLabel(r), db.users.filter(u => u.role === r).length] as const);
   const kpis: [string, number, string][] = [
     ["Companies in directory", db.orgs.length, "/admin/companies"], ["Companies with domain set", db.orgs.filter(o => o.domain).length, "/admin/companies?filter=nodomain"],
@@ -272,7 +270,6 @@ export function Reports() {
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))" }}>{kpis.map(([l, n, h]) => <Link key={l} href={h} className="card tight stack" style={{ gap: 2, color: "var(--ink)" }}><span className="small muted">{l}</span><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 28 }}>{n}</span></Link>)}</div>
       <div className="grid2" style={{ alignItems: "start" }}>
         <div className="card stack" style={{ gap: 8 }}><h2 className="h3">Accounts by type</h2>{byRole.map(([l, n]) => <div key={l} className="row between" style={{ borderTop: "1px solid var(--soft)", paddingTop: 8 }}><span>{l}</span><b>{n}</b></div>)}</div>
-        <div className="card stack" style={{ gap: 8 }}><h2 className="h3">Renewals in the next 90 days <Tip text={TIP.renewal} /></h2>{due.length === 0 ? <p className="muted">None.</p> : due.map(d => <div key={d.name} className="row between" style={{ borderTop: "1px solid var(--soft)", paddingTop: 8 }}><span>{d.name} <span className="small muted">{d.kind}</span></span><b>{fmtDate(d.renewal)}</b></div>)}</div>
       </div>
       <div className="table-wrap"><table>
         <thead><tr><th>Event</th><th>Date</th><th>Registered</th><th>Waitlist</th><th>Attended</th></tr></thead>

@@ -1,4 +1,5 @@
 "use client";
+import { PIKOM_JOIN_URL } from "@/lib/options";
 import Link from "next/link";
 import { useStore, settingsOf } from "@/lib/store";
 
@@ -7,6 +8,14 @@ const TIERS = [
   { name: "Ordinary Member", who: "IT and tech companies incorporated in Malaysia.", annual: "RM2,000", entry: "RM1,000", hl: true, items: ["Full AI Xchange access for 5 people", "Verified directory listing", "Respond to RFPs, post jobs", "Policy working group seat", "PIKOM research"] },
   { name: "Overseas Member", who: "Companies incorporated outside Malaysia entering the market.", annual: "RM4,000", entry: "RM2,000", items: ["Full AI Xchange access for 5 people", "Verified directory listing", "Respond to RFPs, post jobs", "Agency connect introductions"] },
   { name: "Individual Member", who: "Professionals, academics and consultants joining PIKOM in their own name.", annual: "[fee — confirm]", entry: "[fee — confirm]", items: ["Full AI Xchange access for you", "Member contacts and directory", "Members-only events", "PIKOM research"] },
+];
+const BENEFITS: { title: string; items?: string[]; value: string; icon: string }[] = [
+  { title: "Flagship events delegate passes", items: ["PIKOM Lead", "PIKOM Cybersecurity Conference", "GBS Malaysia"], value: "Worth RM3,700", icon: "🎟" },
+  { title: "PIKOM Academy", items: ["Discounts / subsidies on training*"], value: "Worth RM1,300", icon: "🎓" },
+  { title: "Publications", items: ["ICT Job Market Outlook", "Digital Economy Strategic Outlook", "MY.IT Magazine"], value: "Worth RM2,000", icon: "📘" },
+  { title: "Airline corporate programme", value: "Save up to RM2,500", icon: "✈" },
+  { title: "Car fleet programme", value: "Save up to RM43,000", icon: "🚗" },
+  { title: "Use of the PIKOM logo", value: "Worth RM5,000", icon: "🏷" },
 ];
 const ROWS = [
   ["Read policy, governance and insights", "Yes", "Yes"],
@@ -31,7 +40,7 @@ export default function Membership() {
         <span className="eyebrow">PIKOM membership</span>
         <h1 className="display" style={{ maxWidth: 760, fontSize: 38 }}>One PIKOM membership. The whole AI Xchange network.</h1>
         <p className="muted" style={{ fontSize: 17, maxWidth: 700 }}>AI Xchange is included with PIKOM membership. You join PIKOM through the secretariat — once you're a member, we whitelist your company email domain and up to 5 colleagues can sign in.</p>
-        <div className="row" style={{ justifyContent: "center" }}><a className="btn accent" href="#contact">Join PIKOM</a>{!me && <Link className="btn" href="/register">Already a member? Activate access</Link>}</div>
+        <div className="row" style={{ justifyContent: "center" }}><a className="btn accent" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Join PIKOM ↗</a>{!me && <Link className="btn" href="/register">Already a member? Activate access</Link>}</div>
       </section>
 
       <section className="wrap section">
@@ -44,10 +53,28 @@ export default function Membership() {
               <div className="row" style={{ gap: 6, alignItems: "baseline" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 28, fontWeight: 800 }}>{t.annual}</span><span className="muted">/ year</span></div>
               <span className="small muted">+ {t.entry} one-time entrance fee</span>
               <ul style={{ margin: "6px 0 0", paddingLeft: 18, lineHeight: 1.9 }}>{t.items.map(i => <li key={i}>{i}</li>)}</ul>
-              <a className={`btn${t.hl ? " accent" : ""}`} style={{ marginTop: "auto" }} href="#contact">Enquire with PIKOM</a>
+              <a className={`btn${t.hl ? " accent" : ""}`} style={{ marginTop: "auto" }} href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Join as {t.name} ↗</a>
             </div>))}
         </div>
         <p className="small muted" style={{ marginTop: 12 }}>Company fees are PIKOM's published rates. On AI Xchange every paying member gets full access.</p>
+      </section>
+
+      <section className="wrap section">
+        <div className="benefits-head">
+          <span className="eyebrow">PIKOM membership benefits</span>
+          <h2 className="h2">Tangible benefits with savings worth up to <span className="hl-num">RM60,000*</span></h2>
+          <p className="small muted">*Benefits may vary as PIKOM continuously works on enhancements with its partners. Terms &amp; conditions apply. Subject to final approval.</p>
+        </div>
+        <div className="benefits">
+          {BENEFITS.map(b => (
+            <div key={b.title} className="card benefit">
+              <span className="benefit-ic" aria-hidden="true">{b.icon}</span>
+              <h3 className="h3">{b.title}</h3>
+              {b.items && <ul>{b.items.map(i => <li key={i}>{i}</li>)}</ul>}
+              <span className="benefit-val">{b.value}</span>
+            </div>))}
+        </div>
+        <div className="row" style={{ justifyContent: "center", marginTop: 18 }}><a className="btn accent" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Join PIKOM ↗</a></div>
       </section>
 
       <section className="wrap section">

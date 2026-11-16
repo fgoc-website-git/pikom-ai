@@ -25,7 +25,7 @@ function Inner() {
           <Avatar name={org.name} logo={org.profile.logo} lg />
           <div className="stack" style={{ gap: 4 }}>
             <h1 className="h2">{org.name}</h1>
-            <span className="small muted">{org.type} · {org.domain ? `@${org.domain}` : "domain not set"} · whitelisted {fmtDate(org.whitelistedOn)} · renews {fmtDate(org.renewal)}</span>
+            <span className="small muted">{org.type} · {org.domain ? `@${org.domain}` : "domain not set"} · whitelisted {fmtDate(org.whitelistedOn)}</span>
             <span className="row" style={{ gap: 6 }}>
               {org.status === "active" ? <span className="badge green">Active</span> : <span className="badge red">Paused</span>}
               {!org.domain && <span className="badge red">Domain needed</span>}

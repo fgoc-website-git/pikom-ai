@@ -56,7 +56,16 @@ export interface Job {
 export interface Rfp {
   id: string; title: string; buyer: string; orgId: string | null; sector: string; type: string; budget: string;
   closes: string; description: string; contactEmail: string; status: "Open" | "Closed" | "Awarded"; postedOn: string; postedBy: string; hidden?: boolean;
+  /** Tender-style details (Tenders On Time format). All optional. */
+  ref?: string; docRef?: string; country?: string; noticeType?: string; competition?: string; publishedOn?: string; emd?: string;
+  ownership?: string; procurementType?: string; financier?: string; summary?: string; source?: string; sourceUrl?: string;
+  /** Who shared it on AI Xchange (company or person), when different from the buyer. */
+  poster?: string;
 }
+export const RFP_FIELDS = ["title", "buyer", "sector", "type", "budget", "closes", "description", "contactEmail", "status", "hidden", "ref", "docRef", "country", "noticeType", "competition", "publishedOn", "emd", "ownership", "procurementType", "financier", "summary", "source", "sourceUrl"] as const;
+export const PROCUREMENT_TYPES = ["Goods", "Services", "Works", "Consultancy", "Other"];
+/** Past the bid deadline counts as closed, whatever the stored status. */
+export const rfpStatus = (r: Rfp, t = new Date().toISOString().slice(0, 10)) => r.status === "Open" && r.closes && r.closes < t ? "Closed" : r.status;
 export type EventType = "Online" | "Physical" | "Hybrid";
 export interface Registration { userId: string; at: string; status: "confirmed" | "waitlist" | "cancelled"; attended?: boolean; }
 export interface PEvent {
@@ -74,12 +83,56 @@ export interface LogEntry { at: string; who: string; what: string; }
 export interface DB {
   orgs: Org[]; individuals: Individual[]; users: User[]; jobs: Job[]; rfps: Rfp[]; events: PEvent[];
   content: Content[]; announcements: Announcement[]; spotlight: string[]; log: LogEntry[];
-  settings?: Settings; trash?: TrashItem[];
+  settings?: Settings; trash?: TrashItem[]; migrations?: string[];
 }
 /** Fill in fields added after data was first saved. */
 export function normalize(d: DB): DB {
-  return { ...d, settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) }, trash: d.trash || [] };
+  const out: DB = { ...d, settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) }, trash: d.trash || [], migrations: d.migrations || [] };
+  // 16 Nov 2026: public AI tenders (from Tenders On Time) shared by PIKOM; IDs are fixed so this runs once.
+  if (!out.migrations!.includes("tenders-2026-11")) {
+    const have = new Set(out.rfps.map(r => r.id));
+    out.rfps = [...TENDERS_2026_11.filter(t => !have.has(t.id)), ...out.rfps];
+    out.migrations = [...out.migrations!, "tenders-2026-11"];
+  }
+  return out;
 }
+const tot = (ref: string, title: string, buyer: string, sector: string, procurementType: string, publishedOn: string, closes: string, docRef: string, budget: string, summary: string, description: string): Rfp => ({
+  id: "tot" + ref.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 16), ref: /^\d+$/.test(ref) ? `TOT ${ref}` : ref, title, buyer, orgId: null, sector, type: "Public tender", budget, closes, description, summary, contactEmail: "",
+  status: "Open", postedOn: publishedOn, postedBy: "", poster: "PIKOM", hidden: false, docRef, country: "Malaysia", noticeType: "Tender",
+  competition: "ICB", publishedOn, emd: "Refer document", ownership: "Public", procurementType, financier: "Self financed",
+  source: "Tenders On Time", sourceUrl: "https://www.tendersontime.com",
+});
+export const TENDERS_2026_11: Rfp[] = [
+  tot("150633071", "AI software subscription — TransAI literature transformation project", "Dewan Bahasa dan Pustaka (DBP)", "Government", "Goods", "2026-10-08", "2026-10-12", "PT/54709/2026/PERKHIDMATAN", "MYR 14,575.68",
+    "Dewan Bahasa dan Pustaka (DBP) issued a tender for an AI software subscription for its TransAI (Artificial Intelligence Literature Transformation) project.",
+    "Procurement of AI artificial intelligence software subscription for the TransAI Artificial Intelligence Literature Transformation Project. Tender documents were available 8–12 Oct 2026; closing 12 Oct 2026, 12:00."),
+  tot("149673176", "AI improvement services for the e-Parliament system", "Ministry of Transport Malaysia (HQ)", "Government", "Services", "2026-09-23", "2026-09-30", "QT260000000027197", "Refer document",
+    "The Ministry of Transport Malaysia headquarters issued a tender for artificial intelligence (AI) improvement services for the ministry's e-Parliament system.",
+    "Procurement of Artificial Intelligence (AI) improvement services of the e-Parliament system for the Ministry of Transport."),
+  tot("147381304", "CCTV upgrade with AI system — Menara MBJB, Johor Bahru", "Majlis Bandaraya Johor Bahru (MBJB)", "Government", "Works", "2026-08-17", "2026-09-08", "MBJB/K/57/2026", "Refer document",
+    "Majlis Bandaraya Johor Bahru issued a tender for upgrading works, including installation and testing, of a CCTV system with artificial intelligence (AI) at the Majlis Bandaraya tower in Johor Bahru.",
+    "Upgrading work including installation, testing and commissioning of closed-circuit camera (CCTV) with Artificial Intelligence (AI) system at the Majlis Bandaraya Tower, Johor Bahru."),
+  tot("150765930", "AI server infrastructure for MCMC AI Excellence (AIX) Laboratories, MMU", "TM (Telekom Malaysia)", "Education / research", "Services", "2026-10-10", "2026-11-06", "DIT/2026/T/12/A1H/AI INFRA FOR AIX LAB", "Refer document",
+    "TM issued a tender for the AI server infrastructure of the MCMC Artificial Intelligence Excellence (AIX) Laboratories at Multimedia University (MMU). Suppliers submit a complete solution as per the technical specification.",
+    "Tender for the Artificial Intelligence (AI) server infrastructure for MCMC Artificial Intelligence Excellence (AIX) Laboratories for Multimedia University (MMU). Suppliers are invited to submit a complete solution as per the technical specification."),
+  tot("150066635", "End User Computing (EUC) and accessories for AIX Laboratories, MMU", "Multimedia University (MMU)", "Education / research", "Services", "2026-09-29", "2026-10-27", "TM 200201003726 (571389-H)", "Refer document",
+    "Multimedia University (MMU) issued a tender for End User Computing (EUC) and accessories for its Artificial Intelligence Excellence (AIX) Laboratories, for the Cyberjaya campus, Melaka campus, or both.",
+    "Tender for End User Computing (EUC) and accessories for Artificial Intelligence Excellence (AIX) Laboratories. Suppliers may propose for Cyberjaya campus, Melaka campus, or both. Proposals must follow the technical specifications; only one proposal is accepted per bidder."),
+  {
+    ...tot("NAIO-AIRA-2026", "Study of AI awareness and readiness assessment instrument", "National AI Office (NAIO), MyDIGITAL Corporation", "Government", "Consultancy", "2026-07-20", "2026-08-12", "Not stated", "Not stated",
+      "NAIO invited proposals for an end-to-end study to build a national AI awareness and readiness assessment framework — instruments, scoring, stakeholder engagement, pilot testing and a national rollout roadmap (4–6 months).",
+      "Register interest and email a signed NDA to the procurement secretariat; only registered participants receive the RFP. Proposals closed 12 Aug 2026, 12:00 noon."),
+    ref: "", noticeType: "RFP", competition: "Open", emd: "Not stated", financier: "Not stated", contactEmail: "admin@mydigital.gov.my",
+    source: "MyDIGITAL", sourceUrl: "https://www.mydigital.gov.my/request-for-proposal-rfp-study-of-ai-awareness-and-readiness-assessment-instrument/",
+  },
+  {
+    ...tot("NAIO-AITF-2026", "Industry-based AI apprenticeship programme (AI Talent Foundry)", "National AI Office (NAIO), MyDIGITAL Corporation", "Education / training", "Services", "2026-08-13", "2026-09-03", "Not stated", "Not stated",
+      "NAIO requested quotations to design, deliver and manage an applied AI apprenticeship programme: curriculum, recruitment, industry placement, assessment, certification and programme administration.",
+      "Part of the AI Talent Foundry (AITF) initiative. Register interest and email a signed NDA to the procurement secretariat; only registered participants receive the RFQ. Proposals closed 3 Sep 2026."),
+    ref: "", noticeType: "RFQ", competition: "Open", emd: "Not stated", financier: "Not stated", contactEmail: "admin@mydigital.gov.my",
+    source: "MyDIGITAL", sourceUrl: "https://www.mydigital.gov.my/request-for-quotation-rfq-industry-based-ai-apprenticeship-programme/",
+  },
+];
 export const settingsOf = (d: DB): Settings => ({ ...DEFAULT_SETTINGS, ...(d.settings || {}) });
 
 export const ERR = {
@@ -402,12 +455,14 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       if (!canPostRfp(me)) return no("AX-403", "RFPs are posted by company admins, company content admins and individual members.");
       const r = args[0] || {}; const myOrg = me.orgId ? db.orgs.find(o => o.id === me.orgId) : null;
       if (!String(r.title || "").trim()) return no("AX-501", "Add a title.");
-      return ok({ ...db, rfps: [{ ...r, id: uid(), orgId: me.orgId, buyer: myOrg ? myOrg.name.replace(" Sdn. Bhd.", "") : me.name, status: "Open", postedOn: today(), postedBy: me.email, hidden: false }, ...db.rfps] }, `${me.name} posted RFP “${r.title}”`);
+      const poster = myOrg ? myOrg.name.replace(" Sdn. Bhd.", "") : me.name;
+      const clean = pick<Rfp>(r, RFP_FIELDS);
+      return ok({ ...db, rfps: [{ ...clean, title: String(r.title).trim(), id: uid(), orgId: me.orgId, buyer: String(r.buyer || "").trim() || poster, poster, sector: r.sector || "", type: r.type || "", budget: r.budget || "", closes: r.closes || "", description: r.description || "", contactEmail: r.contactEmail || me.email, status: "Open", postedOn: today(), postedBy: me.email, hidden: false } as Rfp, ...db.rfps] }, `${me.name} posted RFP “${r.title}”`);
     }
     case "updateRfp": {
       const r = db.rfps.find(x => x.id === args[0]); if (!r) return no("AX-404", "RFP not found.");
       if (!(staff || r.postedBy === me.email || canEditCompany(me, r.orgId))) return deny;
-      const p = pick<Rfp>(args[1], ["title", "sector", "type", "budget", "closes", "description", "contactEmail", "status", "hidden"]);
+      const p = pick<Rfp>(args[1], RFP_FIELDS);
       return ok({ ...db, rfps: db.rfps.map(x => x.id === r.id ? { ...x, ...p } : x) }, `Updated RFP “${r.title}”: ${Object.keys(p).join(", ")}`);
     }
     case "saveEvent": {
@@ -558,7 +613,7 @@ export function viewFor(db: DB, me: User | null): DB {
     trash: sup ? (db.trash || []).map(t => ({ ...t, data: scrubTrash(t) })) : staff ? (db.trash || []).filter(t => t.kind === "event" || t.kind === "content" || t.kind === "job") : [],
     orgs: full ? db.orgs : db.orgs.map(o => ({ ...o, mainEmail: "", pikomNo: "", profile: { ...o.profile, phone: "", linkedin: "" } })),
     jobs: db.jobs.filter(j => !j.hidden || staff || mine(j.postedBy)).map(j => full ? j : { ...j, salary: "", description: "", applyEmail: "", linkedinUrl: "", postedBy: "" }),
-    rfps: db.rfps.filter(r => !r.hidden || staff || mine(r.postedBy)).map(r => full ? r : { ...r, budget: "", description: "", contactEmail: "", postedBy: "" }),
+    rfps: db.rfps.filter(r => !r.hidden || staff || mine(r.postedBy)).map(r => full ? r : { ...r, budget: "", description: "", contactEmail: "", postedBy: "", summary: "", ref: "", docRef: "", emd: "", sourceUrl: "", financier: "" }),
     events: db.events.filter(e => e.status !== "Draft" || staff).map(e => {
       const reg = e.registrations.find(r => r.userId === me?.id && r.status === "confirmed");
       return staff || reg ? e : { ...e, link: "" };

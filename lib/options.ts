@@ -44,3 +44,6 @@ export type MemberType = typeof MEMBER_TYPES[number];
 export const SEAT_LIMIT = 5;
 
 export const PUBLIC_EMAIL_DOMAINS = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "live.com", "icloud.com", "proton.me", "protonmail.com", "ymail.com"];
+
+/** PIKOM membership sign-up (handled by PIKOM, outside AI Xchange). */
+export const PIKOM_JOIN_URL = "https://pikommembership.web.app/register-type";

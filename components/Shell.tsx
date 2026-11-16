@@ -6,6 +6,7 @@ import { useStore, roleLabel, canManageContent, isSuper, settingsOf } from "@/li
 import { shortName } from "@/lib/directory";
 import { Avatar } from "./ui";
 import { Icon } from "./Icons";
+import { PIKOM_JOIN_URL } from "@/lib/options";
 
 const NAV = [["/members", "Members"], ["/opportunities", "Opportunities"], ["/events", "Events"], ["/insights", "Insights"]] as const;
 
@@ -78,14 +79,14 @@ export function Header() {
             <AccountMenu />
           </> : <>
             <IconLink href="/signin" icon="login" label="Sign in" active={path === "/signin"} />
-            <Link className="btn sm accent" href="/register">Join</Link>
+            <a className="btn sm accent" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer" title="Join PIKOM to get full access">Join PIKOM</a>
           </>}
           <button className="icon-link menu-btn" aria-expanded={open} aria-controls="mainnav" aria-label="Menu" onClick={() => setOpen(!open)}><Icon name={open ? "close" : "menu"} /></button>
         </div>
       </div></header>
       {offline && <Banner id="offline" tone="red" icon="info">We can't reach the server right now ({offline}). Changes won't be saved until it's back.</Banner>}
       {ann && <Banner id={ann.id} tone="orange" icon="megaphone">{ann.text} {ann.link && <Link href={ann.link}>Find out more</Link>}</Banner>}
-      {me?.role === "guest" && <Banner id="guest" tone="blue" icon="info">You're on a free guest account. <Link href="/membership">Become a PIKOM member</Link> to see full details, apply and connect.</Banner>}
+      {me?.role === "guest" && <Banner id="guest" tone="blue" icon="info">You're on a free guest account. <a href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Become a PIKOM member</a> to see full details, apply and connect.</Banner>}
     </>
   );
 }
@@ -96,7 +97,7 @@ export function Footer() {
   const year = new Date().getFullYear();
   const cols: [string, [string, string, boolean?][]][] = [
     ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"]]],
-    ["Membership", [["/membership", "Membership & access"], ["/register", "Join AI Xchange"], ["/signin", "Sign in"], ["https://pikom.org.my", "pikom.org.my", true]]],
+    ["Membership", [["/membership", "Membership & access"], [PIKOM_JOIN_URL, "Join PIKOM", true], ["/register", "Activate member access"], ["/signin", "Sign in"], ["https://pikom.org.my", "pikom.org.my", true]]],
     ["Help", [["/membership#contact", "Contact the secretariat"], ["/privacy", "Privacy notice (PDPA 2010)"], ["/terms", "Terms of use"]]],
   ];
   return (

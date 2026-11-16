@@ -1,8 +1,9 @@
 "use client";
+import { PIKOM_JOIN_URL } from "@/lib/options";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useStore, today, canPostJob, PAYING, settingsOf } from "@/lib/store";
+import { useStore, today, canPostJob, PAYING, settingsOf, rfpStatus } from "@/lib/store";
 import { companies } from "@/lib/directory";
 import { Avatar, fmtDate } from "@/components/ui";
 import { EventCard } from "@/components/EventCard";
@@ -16,7 +17,8 @@ export default function Home() {
   const all = companies(db);
   const carousel = [...all].sort((a, b) => Number(!!b.logo) - Number(!!a.logo) || a.name.localeCompare(b.name));
   const jobs = db.jobs.filter(j => !j.hidden).sort((a, b) => b.postedOn.localeCompare(a.postedOn)).slice(0, 4);
-  const rfps = db.rfps.filter(r => r.status === "Open" && !r.hidden).slice(0, 3);
+  const liveRfps = db.rfps.filter(r => !r.hidden).sort((a, b) => Number(rfpStatus(a) !== "Open") - Number(rfpStatus(b) !== "Open") || (rfpStatus(a) === "Open" ? a.closes.localeCompare(b.closes) : b.closes.localeCompare(a.closes)));
+  const rfps = liveRfps.slice(0, 4);
   const events = db.events.filter(e => e.status === "Published" && e.date >= today()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
   const featured = db.content.filter(c => c.published).sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 12);
   const people = db.users.filter(u => PAYING.includes(u.role)).length;
@@ -37,11 +39,11 @@ export default function Home() {
           </form>
           <div className="row" style={{ gap: 10 }}>
             {full ? <>{canPostJob(me) ? <Link className="btn accent" href="/opportunities?tab=jobs&post=1">Post a job</Link> : <Link className="btn accent" href="/opportunities?tab=jobs">Browse jobs</Link>}<Link className="btn ghost-dark" href="/opportunities">Find opportunities</Link></>
-              : <><Link className="btn accent" href="/membership">Become a PIKOM member</Link>{!me && <Link className="btn ghost-dark" href="/register">Already a member? Activate access</Link>}</>}
+              : <><a className="btn accent" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Become a PIKOM member</a>{!me && <Link className="btn ghost-dark" href="/register">Already a member? Activate access</Link>}</>}
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#1E3A5F", border: "1px solid #1E3A5F", borderRadius: 14, overflow: "hidden", maxWidth: 460, justifySelf: "end", width: "100%" }}>
-          {[[settingsOf(db).memberCompaniesStat, "PIKOM member companies"], [settingsOf(db).companiesStat, "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => r.status === "Open").length + db.jobs.length), "Open opportunities"]].map(([n, l]) => (
+          {[[settingsOf(db).memberCompaniesStat, "PIKOM member companies"], [settingsOf(db).companiesStat, "Companies on AI Xchange"], [String(people), "Members signed in"], [String(db.rfps.filter(r => rfpStatus(r) === "Open").length + db.jobs.filter(j => !j.hidden).length), "Open opportunities"]].map(([n, l]) => (
             <div key={l} className="stack" style={{ gap: 2, background: "#0E2647", padding: "22px 22px" }}><span style={{ fontFamily: "Manrope, Inter, system-ui, sans-serif", fontSize: 30, fontWeight: 800 }}>{n}</span><span className="small" style={{ color: "#94A3B8" }}>{l}</span></div>))}
         </div>
       </div></section>
@@ -66,11 +68,11 @@ export default function Home() {
 
       <section className="wrap section" style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
         <div className="card" style={{ flex: "999 1 520px", minWidth: 0 }}>
-          <div className="row between" style={{ marginBottom: 8 }}><h2 className="h2" style={{ fontSize: 18 }}>Open RFPs</h2><Link href="/opportunities" className="more">View all →</Link></div>
+          <div className="row between" style={{ marginBottom: 8 }}><h2 className="h2" style={{ fontSize: 18 }}>AI tenders & RFPs</h2><Link href="/opportunities" className="more">View all →</Link></div>
           <div className="list">{rfps.map(r => (
             <div key={r.id} className="row between" style={{ padding: "12px 0" }}>
-              <div className="stack" style={{ gap: 2, flex: "1 1 280px", minWidth: 0 }}><span style={{ fontWeight: 600 }}>{r.title}</span><span className="small muted">{r.sector} · closes {fmtDate(r.closes)}</span></div>
-              {full ? <span className="badge green">{r.budget}</span> : <span className="badge">Budget: members only</span>}
+              <div className="stack" style={{ gap: 2, flex: "1 1 280px", minWidth: 0 }}><span style={{ fontWeight: 600 }}>{r.title}</span><span className="small muted">{r.buyer} · {rfpStatus(r) === "Open" ? `closes ${fmtDate(r.closes)}` : `closed ${fmtDate(r.closes)}`}</span></div>
+              {rfpStatus(r) === "Open" ? <span className="badge green">Open</span> : <span className="badge">Closed</span>}
             </div>))}</div>
         </div>
         <div className="card" style={{ flex: "1 1 360px", minWidth: 0 }}>

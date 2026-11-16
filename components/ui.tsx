@@ -1,4 +1,5 @@
 "use client";
+import { PIKOM_JOIN_URL } from "@/lib/options";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { OTHER } from "@/lib/options";
@@ -209,7 +210,7 @@ export function MembersOnly({ children, staff }: { children: React.ReactNode; st
     <div className="wrap page-head"><div className="card stack" style={{ maxWidth: 560 }}>
       <h1 className="h2">Please sign in</h1>
       <p className="muted">Sign in with your AI Xchange account to continue.</p>
-      <div className="row"><Link className="btn primary" href="/signin">Sign in</Link><Link className="btn" href="/register">Join AI Xchange</Link></div>
+      <div className="row"><Link className="btn primary" href="/signin">Sign in</Link><a className="btn" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Join PIKOM ↗</a></div>
     </div></div>
   );
   if (staff && !(["superadmin", "contentadmin"].includes(me.role) || me.staff)) return <div className="wrap page-head"><ErrorBox code="AX-403" msg="This page is for PIKOM admins only." /></div>;

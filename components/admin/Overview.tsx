@@ -36,7 +36,6 @@ export function Overview() {
           {sup && card(c.noDomain, "Companies missing a domain", "/admin/companies?filter=nodomain", "Add the email domain so their people can register.")}
           {sup && card(c.noAdmin, "Companies with no admin", "/admin/companies?filter=nomain", "Set the first company admin.")}
           {sup && card(c.full, "Companies with full seats", "/admin/companies?filter=full", "They can't add anyone until a seat is freed.", false)}
-          {sup && card(c.renewals, "Renewals in the next 90 days", "/admin/companies?filter=renewal", "Check with the secretariat.", false)}
           {sup && c.paused > 0 && card(c.paused, "Paused companies", "/admin/companies?filter=paused", "Restore access once renewed.")}
           {card(week.length, "Events this week", "/admin/events?filter=upcoming", "Check attendees and joining links.", false)}
           {card(c.hidden, "Hidden posts", "/admin/posts", "Posts hidden by PIKOM — review or show again.", false)}

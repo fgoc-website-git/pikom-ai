@@ -1,4 +1,5 @@
 "use client";
+import { PIKOM_JOIN_URL } from "@/lib/options";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -38,7 +39,7 @@ export default function Register() {
             <ErrorBox code={err.code} msg={err.msg}>
               <div className="row">
                 {err.code === ERR.ALREADY_REGISTERED && <Link className="btn sm" href="/signin">Sign in</Link>}
-                {guestable && <><Link className="btn sm" href="/membership#contact">Contact PIKOM</Link><button type="button" className="btn sm primary" onClick={() => { setFound({ kind: "guest" }); setStep(2); setErr(null); }}>Continue with a free guest account</button></>}
+                {guestable && <><a className="btn sm" href={PIKOM_JOIN_URL} target="_blank" rel="noreferrer">Join PIKOM ↗</a><button type="button" className="btn sm primary" onClick={() => { setFound({ kind: "guest" }); setStep(2); setErr(null); }}>Continue with a free guest account</button></>}
                 {err.code === ERR.SUSPENDED && <Link className="btn sm" href="/membership#contact">Contact PIKOM</Link>}
                 {err.code === ERR.SEATS_FULL && <span className="small">Company admins free a seat under <b>My account → Manage my company</b>.</span>}
               </div>

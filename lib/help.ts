@@ -33,7 +33,7 @@ export const TIP = {
   showLinkedin: "When off, your LinkedIn link isn't shown to other members.",
   notifications: "Email delivery switches on once the email service is connected. Your choices are saved now.",
   signOutAll: "Signs you out on every other browser and device. You stay signed in here.",
-  csv: "One company per row. Columns: name, domain, type, admin email, PIKOM no., renewal (YYYY-MM-DD), category, about. Only name is required. Existing companies (same name or domain) are updated, not duplicated.",
+  csv: "One company per row. Columns: name, domain, type, admin email, category, about. Only name is required. Existing companies (same name or domain) are updated, not duplicated.",
   statCompanies: "Shown on the home page as 'Companies on AI Xchange'. A fixed number for now.",
   statMembers: "Shown on the home page as 'PIKOM member companies'.",
   defaultSeats: "Seats given to newly whitelisted companies. Existing companies keep their own limit.",

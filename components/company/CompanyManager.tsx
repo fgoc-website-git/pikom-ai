@@ -163,7 +163,7 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
   const { updateOrg, removeOrg, setMainHolder, orgUsers } = useStore();
   const [dom, setDom] = useState(org.domain);
   const [adminEmail, setAdminEmail] = useState(org.mainEmail);
-  const [meta, setMeta] = useState({ name: org.name, pikomNo: org.pikomNo, renewal: org.renewal });
+  const [meta, setMeta] = useState({ name: org.name });
   const [err, setErr] = useState<Err>(null);
   const n = orgUsers(org.id).length;
   const save = (r: { ok: boolean; code?: string; msg?: string }, okMsg: string) => { if (!r.ok) setErr(r as Err); else { setErr(null); toast(r.msg || okMsg); } };
@@ -182,14 +182,12 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
           <div><button className="btn primary">Save admin</button></div>
         </form>
       </div>
-      <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(updateOrg(org.id, meta), "Membership details saved"); }}>
-        <h3 className="h3">PIKOM membership</h3>
+      <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(updateOrg(org.id, meta), "Company name saved"); }}>
+        <h3 className="h3">Company name</h3>
         <div className="form-grid">
           <Field label="Registered company name" value={meta.name} onChange={e => setMeta({ ...meta, name: e.target.value })} />
-          <Field label="PIKOM membership no." tip={TIP.pikomNo} value={meta.pikomNo} onChange={e => setMeta({ ...meta, pikomNo: e.target.value })} />
-          <Field label="Renewal date" tip={TIP.renewal} type="date" value={meta.renewal} onChange={e => setMeta({ ...meta, renewal: e.target.value })} />
         </div>
-        <div><button className="btn primary">Save membership details</button></div>
+        <div><button className="btn primary">Save name</button></div>
       </form>
       <div className="card stack" style={{ gap: 12 }}>
         <h3 className="h3">Access <Tip text={TIP.pause} /></h3>
