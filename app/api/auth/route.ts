@@ -17,7 +17,8 @@ export async function POST(req: Request) {
         const db = await load();
         const r = checkEmail(db, str(b.email));
         const email = str(b.email).trim().toLowerCase();
-        const org = r.ok && r.org ? { ...r.org, mainEmail: r.org.mainEmail === email ? email : "", pikomNo: "" } : undefined;
+        const isMain = !!r.org && r.org.mainEmail === email;
+        const org = r.ok && r.org ? { ...r.org, mainEmail: isMain ? email : "", mainName: isMain ? r.org.mainName : undefined, pikomNo: "" } : undefined;
         return NextResponse.json({ result: { ...r, org } });
       }
       case "register": {

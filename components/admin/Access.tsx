@@ -19,7 +19,7 @@ export const downloadCsv = (name: string, rows: (string | number)[][]) => {
 /* ---------------- Whitelist one company ---------------- */
 function AddCompany({ toast, onDone }: { toast: Toast; onDone: () => void }) {
   const { db, addOrg } = useStore();
-  const [f, setF] = useState({ domain: "", name: "", type: "Ordinary Member" as MemberType, mainEmail: "", pikomNo: "", renewal: "", category: "", about: "" });
+  const [f, setF] = useState({ domain: "", name: "", type: "Ordinary Member" as MemberType, mainEmail: "", mainName: "", pikomNo: "", renewal: "", category: "", about: "" });
   const [err, setErr] = useState<Err>(null);
   return (
     <form className="card hl stack" style={{ gap: 16 }} onSubmit={e => { e.preventDefault(); const r = addOrg(f); if (!r.ok) return setErr(r); toast(r.msg || "Added"); onDone(); }}>
@@ -30,7 +30,8 @@ function AddCompany({ toast, onDone }: { toast: Toast; onDone: () => void }) {
         <Field label="Registered company name" required value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
         <label className="field"><span className="lbl">PIKOM membership type</span><select className="select" value={f.type} onChange={e => setF({ ...f, type: e.target.value as MemberType })}>{MEMBER_TYPES.filter(t => t !== "Individual Member").map(t => <option key={t}>{t}</option>)}</select></label>
         <SelectOther label="Directory category" options={COMPANY_CATEGORIES} value={f.category} onChange={v => setF({ ...f, category: v })} />
-        <Field label="First company admin email" tip={TIP.firstAdmin} type="email" placeholder={`name@${f.domain || "company.com.my"}`} value={f.mainEmail} onChange={e => setF({ ...f, mainEmail: e.target.value })} hint="Can be set later" />
+        <Field label="Main account holder name" value={f.mainName} onChange={e => setF({ ...f, mainName: e.target.value })} placeholder="Full name" />
+        <Field label="Main account holder email" tip={TIP.firstAdmin} type="email" placeholder={`name@${f.domain || "company.com.my"}`} value={f.mainEmail} onChange={e => setF({ ...f, mainEmail: e.target.value })} hint="Can be set later" />
         <Field label="One-line description (directory)" value={f.about} onChange={e => setF({ ...f, about: e.target.value })} hint="The company admin can edit this later" />
       </div>
       {err && <ErrorBox code={err.code} msg={err.msg} />}
@@ -68,7 +69,7 @@ export function Companies({ toast }: { toast: Toast }) {
         sorts={[["name", "Name A–Z"], ["newest", "Newest first"], ["seats", "Most seats used"]]} sort={sort} setSort={setSort}
         filters={[["all", "All", n("all")], ["nodomain", "Domain needed", n("nodomain")], ["nomain", "No admin yet", n("nomain")], ["full", "Seats full", n("full")], ["paused", "Paused", n("paused")]]} filter={filter} setFilter={setFilter}>
         <Link className="btn" href="/admin/companies/import">Import from Excel</Link>
-        <button className="btn" onClick={() => downloadCsv("ai-xchange-companies.csv", [["Name", "Domain", "Type", "Seats used", "Seat limit", "Admins", "Status"], ...list.map(o => [o.name, o.domain, o.type, seatsUsed(o.id), o.seatLimit, adminsOf(db, o.id).map(a => a.email).join("; ") || o.mainEmail, o.status])])}>Export</button>
+        <button className="btn" onClick={() => downloadCsv("ai-xchange-companies.csv", [["Name", "Domain", "Type", "Main account holder", "Seats used", "Seat limit", "Admins", "Status"], ...list.map(o => [o.name, o.domain, o.type, [o.mainName, o.mainEmail].filter(Boolean).join(" · "), seatsUsed(o.id), o.seatLimit, adminsOf(db, o.id).map(a => a.email).join("; ") || o.mainEmail, o.status])])}>Export</button>
         {!adding && <button className="btn primary" onClick={() => setAdding(true)}>+ Whitelist a company</button>}
       </ListBar>
       {adding && <Reveal><AddCompany toast={toast} onDone={() => setAdding(false)} /></Reveal>}
@@ -82,7 +83,7 @@ export function Companies({ toast }: { toast: Toast }) {
                 <td><b>{o.name}</b>{o.status !== "active" && <> <span className="badge red">Paused</span></>}<div className="small muted">{o.type.replace(" Member", "")} · added {fmtDate(o.whitelistedOn)}</div></td>
                 <td>{o.domain ? `@${o.domain}` : <span className="badge red">Domain needed</span>}</td>
                 <td><SeatDots used={seatsUsed(o.id)} limit={o.seatLimit} /></td>
-                <td>{admins.length ? admins.map(a => <div key={a.id}>{a.name}</div>) : o.mainEmail ? <span className="small">{o.mainEmail}<br /><span className="badge orange">Not registered yet</span></span> : <span className="badge">Not set</span>}</td>
+                <td>{admins.length ? admins.map(a => <div key={a.id}>{a.name}</div>) : o.mainEmail ? <span className="small">{o.mainName ? <>{o.mainName}<br /></> : null}{o.mainEmail}<br /><span className="badge orange">Not registered yet</span></span> : <span className="badge">Not set</span>}</td>
                 <td><Link className="btn sm" href={`/admin/companies/${o.id}`}>Manage</Link></td>
               </tr>);
           })}</tbody>
@@ -108,7 +109,7 @@ function parseCsv(text: string): string[][] {
 }
 type ImportKey = keyof ImportRow;
 /** Header matchers, checked in this order so "Company admin email" maps to the admin email, not the name. */
-const HEADS: [ImportKey, RegExp][] = [["mainEmail", /admin.*email|^admin|contact email|main email/], ["domain", /domain/], ["type", /membership type|member type|^type/], ["linkedin", /linkedin/], ["website", /website|^url/],
+const HEADS: [ImportKey, RegExp][] = [["mainEmail", /(admin|holder|main account).*email|contact email|main email|^admin$/], ["mainName", /(admin|holder|main account|contact).*name/], ["domain", /domain/], ["type", /membership type|member type|^type/], ["linkedin", /linkedin/], ["website", /website|^url/],
   ["logo", /logo/], ["phone", /phone|tel/], ["capabilities", /capabilit/], ["industries", /industr/], ["employees", /employee|staff|size/], ["state", /^state|location|hq/], ["category", /categ/], ["about", /about|desc/], ["name", /company name|^name|^company/]];
 const IGNORE = /note|check|status|remark/;
 const LIST_KEYS: ImportKey[] = ["capabilities", "industries"];
@@ -130,7 +131,7 @@ function toRows(all: string[][], db: ReturnType<typeof useStore>["db"]) {
     o.mainEmail = o.mainEmail.toLowerCase();
     const dom = o.domain;
     const exists = db.orgs.find(x => (dom && x.domain === dom) || x.name.toLowerCase() === o.name.toLowerCase());
-    const problem = !o.name ? "Name missing" : !dom ? "Email domain missing" : !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) ? "Invalid domain" : !o.mainEmail ? "Admin email missing" : !o.mainEmail.endsWith("@" + dom) ? `Admin email not on @${dom}` : "";
+    const problem = !o.name ? "Name missing" : !dom ? "Email domain missing" : !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) ? "Invalid domain" : !o.mainName ? "Main account holder name missing" : !o.mainEmail ? "Main account holder email missing" : !o.mainEmail.endsWith("@" + dom) ? `Holder email not on @${dom}` : "";
     return { o, status: problem || (exists ? "Fill blanks (exists)" : "New"), problem: !!problem };
   });
 }
@@ -174,8 +175,8 @@ export function CompanyImport() {
         <div className="card stack" style={{ gap: 12 }}>
           <div className="row between"><h2 className="h3">2. Check the preview</h2><span className="small muted">{good.length} ready · {rows.length - good.length} with problems (skipped)</span></div>
           <div className="table-wrap" style={{ maxHeight: 420, overflow: "auto" }}><table>
-            <thead><tr><th>Company</th><th>Domain</th><th>Type</th><th>Admin email</th><th>Category · State</th><th>Result</th></tr></thead>
-            <tbody>{rows.slice(0, 300).map((r, i) => <tr key={i}><td><b>{r.o.name || "—"}</b></td><td>{r.o.domain || <span className="muted">—</span>}</td><td className="small">{r.o.type}</td><td className="small">{r.o.mainEmail || "—"}</td><td className="small">{[r.o.category, r.o.state].filter(Boolean).join(" · ") || "—"}</td><td><span className={`badge ${r.problem ? "red" : r.status === "New" ? "green" : "blue"}`}>{r.status}</span></td></tr>)}</tbody>
+            <thead><tr><th>Company</th><th>Domain</th><th>Type</th><th>Main account holder</th><th>Category · State</th><th>Result</th></tr></thead>
+            <tbody>{rows.slice(0, 300).map((r, i) => <tr key={i}><td><b>{r.o.name || "—"}</b></td><td>{r.o.domain || <span className="muted">—</span>}</td><td className="small">{r.o.type}</td><td className="small">{r.o.mainName ? <>{r.o.mainName}<br /></> : null}{r.o.mainEmail || "—"}</td><td className="small">{[r.o.category, r.o.state].filter(Boolean).join(" · ") || "—"}</td><td><span className={`badge ${r.problem ? "red" : r.status === "New" ? "green" : "blue"}`}>{r.status}</span></td></tr>)}</tbody>
           </table></div>
           {res && (res.ok ? <div className="alert ok">{res.msg}</div> : <ErrorBox code={res.code} msg={res.msg || ""} />)}
           <div className="row">

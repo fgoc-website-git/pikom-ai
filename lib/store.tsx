@@ -8,7 +8,7 @@ import type { MemberType } from "./options";
 export * from "./engine";
 
 const EMPTY: DB = normalize({ orgs: [], individuals: [], users: [], jobs: [], rfps: [], events: [], content: [], announcements: [], spotlight: [], log: [] });
-export type ImportRow = { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string;
+export type ImportRow = { name: string; domain: string; type: MemberType; mainEmail: string; mainName?: string; pikomNo: string; renewal: string; category: string; about: string;
   website?: string; capabilities?: string[]; industries?: string[]; state?: string; employees?: string; phone?: string; linkedin?: string; logo?: string };
 
 type RegisterInput = { email: string; name: string; password: string; jobTitle: string; consent: boolean; asGuest?: boolean; company?: string };
@@ -21,7 +21,7 @@ interface Ctx {
   changePassword: (current: string, next: string) => Promise<Result>;
   updateMe: (p: Partial<User>) => void;
   updateOrgProfile: (orgId: string, p: Partial<CompanyProfile>) => void;
-  removeUser: (userId: string) => void; setMainHolder: (orgId: string, email: string) => Result; setCompanyRole: (userId: string, role: Role) => Result;
+  removeUser: (userId: string) => void; setMainHolder: (orgId: string, email: string, name?: string) => Result; setCompanyRole: (userId: string, role: Role) => Result;
   addOrg: (o: { domain: string; name: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string }) => Result;
   updateOrg: (orgId: string, p: Partial<Org>) => Result; removeOrg: (orgId: string) => void;
   addIndividual: (i: { email: string; name: string; pikomNo: string; renewal: string }) => Result; removeIndividual: (email: string) => void;
@@ -114,7 +114,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     updateMe: (p) => { run("updateMe", p); },
     updateOrgProfile: (orgId, p) => { run("updateOrgProfile", orgId, p); },
     removeUser: (id) => { run("removeUser", id); },
-    setMainHolder: (orgId, email) => run("setMainHolder", orgId, email),
+    setMainHolder: (orgId, email, name) => run("setMainHolder", orgId, email, ...(name === undefined ? [] : [name])),
     setCompanyRole: (id, role) => run("setCompanyRole", id, role),
     addOrg: (o) => run("addOrg", o),
     updateOrg: (orgId, p) => run("updateOrg", orgId, p),

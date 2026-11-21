@@ -32,7 +32,7 @@ export default function Register() {
           e.preventDefault(); setErr(null); setBusy(true);
           const r = await checkEmail(email); setBusy(false);
           if (!r.ok) return setErr(r);
-          setFound({ kind: r.kind as Kind, org: r.org }); setStep(2);
+          setFound({ kind: r.kind as Kind, org: r.org }); if (r.org?.mainName) setF(x => x.name ? x : { ...x, name: r.org!.mainName! }); setStep(2);
         }}>
           <Field label="Email" type="email" required autoComplete="email" placeholder="name@yourcompany.com.my" value={email} onChange={e => setEmail(e.target.value)} />
           {err && (

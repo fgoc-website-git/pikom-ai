@@ -35,6 +35,8 @@ export interface CompanyProfile {
 export interface Org {
   id: string; domain: string; name: string; type: MemberType; pikomNo: string; mainEmail: string;
   seatLimit: number; status: "active" | "suspended"; whitelistedOn: string; renewal: string; profile: CompanyProfile;
+  /** Name of the main account holder (the person PIKOM names as company admin), for records and to pre-fill activation. */
+  mainName?: string;
 }
 export interface Individual { email: string; name: string; pikomNo: string; whitelistedOn: string; renewal: string; }
 export interface User {
@@ -468,14 +470,15 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
       return ok({ ...d1, users: db.users.filter(x => x.id !== u.id), events: db.events.map(e => promote({ ...e, registrations: e.registrations.filter(r => r.userId !== u.id) })) }, `Removed ${u.name} (${u.email})`, `${u.name} removed — seat freed.`, t);
     }
     case "setMainHolder": {
-      const [orgId, raw] = args; if (!sup) return deny;
+      const [orgId, raw, rawName] = args; if (!sup) return deny;
       const email = String(raw || "").trim().toLowerCase(); const o = db.orgs.find(x => x.id === orgId);
+      const mainName = rawName === undefined ? o?.mainName : String(rawName || "").trim().slice(0, 120);
       if (!o) return no("AX-404", "Company not found.");
       if (email && o.domain && domainOf(email) !== o.domain) return no("AX-304", `The admin's email must end in @${o.domain}.`);
       const u = db.users.find(x => x.email === email && x.orgId === orgId);
       if (u && u.role !== "main" && adminsOf(db, orgId).length >= settingsOf(db).maxAdmins) return no("AX-110", `${o.name} already has ${settingsOf(db).maxAdmins} company admins. Change one of them to another role first.`);
-      return ok({ ...db, orgs: db.orgs.map(x => x.id === orgId ? { ...x, mainEmail: email } : x), users: db.users.map(x => u && x.id === u.id ? { ...x, role: "main" } : x) },
-        `Company admin for ${o.name} set to ${email || "(none)"}`, u ? `${u.name} is now a company admin.` : email ? `${email} becomes company admin when they register.` : "Saved.");
+      return ok({ ...db, orgs: db.orgs.map(x => x.id === orgId ? { ...x, mainEmail: email, mainName } : x), users: db.users.map(x => u && x.id === u.id ? { ...x, role: "main" } : x) },
+        `Main account holder for ${o.name} set to ${email || "(none)"}`, u ? `${u.name} is now a company admin.` : email ? `${email} becomes company admin when they register.` : "Saved.");
     }
     case "setCompanyRole": {
       const [userId, role] = args as [string, Role];
@@ -489,14 +492,14 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
     }
     case "addOrg": {
       if (!sup) return deny;
-      const { domain, name: nm, type, mainEmail, pikomNo, renewal, category, about } = args[0] || {};
+      const { domain, name: nm, type, mainEmail, mainName, pikomNo, renewal, category, about } = args[0] || {};
       const dom = String(domain || "").trim().toLowerCase().replace(/^@/, "");
       if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom)) return no("AX-301", "Enter a valid domain, e.g. company.com.my");
       if (PUBLIC_EMAIL_DOMAINS.includes(dom)) return no("AX-302", "Public email domains can't be whitelisted for a company. Add the person as an Individual Member instead.");
       if (db.orgs.some(o => o.domain === dom)) return no("AX-303", "This domain is already whitelisted.");
       const main = String(mainEmail || "").trim().toLowerCase();
       if (main && domainOf(main) !== dom) return no("AX-304", `The main account holder's email must end in @${dom}.`);
-      const o: Org = { id: uid(), domain: dom, name: String(nm || dom).trim(), type, pikomNo: pikomNo || "", mainEmail: main, seatLimit: settingsOf(db).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: renewal || "", profile: { ...emptyProfile(), category: category || "", about: about || "" } };
+      const o: Org = { id: uid(), domain: dom, name: String(nm || dom).trim(), type, pikomNo: pikomNo || "", mainEmail: main, mainName: String(mainName || "").trim().slice(0, 120) || undefined, seatLimit: settingsOf(db).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: renewal || "", profile: { ...emptyProfile(), category: category || "", about: about || "" } };
       return ok({ ...db, orgs: [o, ...db.orgs] }, `Whitelisted ${dom} for ${o.name} — added to the member directory`, `${o.name} is now in the member directory. Anyone with an @${dom} email can register (up to ${settingsOf(db).defaultSeatLimit} people).`);
     }
     case "updateOrg": {
@@ -677,7 +680,7 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
     }
     case "importOrgs": {
       if (!sup) return deny;
-      const rows = (args[0] || []) as { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string; website?: string; capabilities?: string[]; industries?: string[]; state?: string; employees?: string; phone?: string; linkedin?: string; logo?: string }[];
+      const rows = (args[0] || []) as { name: string; domain: string; type: MemberType; mainEmail: string; mainName?: string; pikomNo: string; renewal: string; category: string; about: string; website?: string; capabilities?: string[]; industries?: string[]; state?: string; employees?: string; phone?: string; linkedin?: string; logo?: string }[];
       const str = (v: unknown, max = 400) => String(v ?? "").trim().slice(0, max);
       const arr = (v: unknown) => (Array.isArray(v) ? v : []).map(x => str(x, 80)).filter(Boolean).slice(0, 20);
       /** Profile fields from the import. For an existing company only empty fields are filled. */
@@ -699,10 +702,10 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
         const target = byDomain || byName;
         if (target) {
           if (byDomain && byName && byDomain.id !== byName.id) { skipped.push(`${name}: domain already used by ${byDomain.name}`); continue; }
-          d = { ...d, orgs: d.orgs.map(o => o.id !== target.id ? o : { ...o, domain: o.domain || dom, mainEmail: o.mainEmail || main, pikomNo: r.pikomNo || o.pikomNo, renewal: r.renewal || o.renewal, type: r.type || o.type, profile: prof(r, o.profile) }) };
+          d = { ...d, orgs: d.orgs.map(o => o.id !== target.id ? o : { ...o, domain: o.domain || dom, mainEmail: o.mainEmail || main, mainName: o.mainName || (o.mainEmail && o.mainEmail !== main ? undefined : str(r.mainName, 120) || undefined), pikomNo: r.pikomNo || o.pikomNo, renewal: r.renewal || o.renewal, type: r.type || o.type, profile: prof(r, o.profile) }) };
           updated++;
         } else {
-          const o: Org = { id: uid() || rand(), domain: dom, name, type: r.type || "Ordinary Member", pikomNo: r.pikomNo || "", mainEmail: main, seatLimit: settingsOf(d).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: r.renewal || "", profile: prof(r) };
+          const o: Org = { id: uid() || rand(), domain: dom, name, type: r.type || "Ordinary Member", pikomNo: r.pikomNo || "", mainEmail: main, mainName: str(r.mainName, 120) || undefined, seatLimit: settingsOf(d).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: r.renewal || "", profile: prof(r) };
           d = { ...d, orgs: [...d.orgs, o] }; added++;
         }
       }
@@ -750,7 +753,7 @@ export function viewFor(db: DB, me: User | null): DB {
     log: sup ? db.log : [],
     settings: settingsOf(db),
     trash: sup ? (db.trash || []).map(t => ({ ...t, data: scrubTrash(t) })) : staff ? (db.trash || []).filter(t => t.kind === "event" || t.kind === "content" || t.kind === "job") : [],
-    orgs: full ? db.orgs : db.orgs.map(o => ({ ...o, mainEmail: "", pikomNo: "", profile: { ...o.profile, phone: "", linkedin: "" } })),
+    orgs: full ? db.orgs : db.orgs.map(o => ({ ...o, mainEmail: "", mainName: undefined, pikomNo: "", profile: { ...o.profile, phone: "", linkedin: "" } })),
     jobs: db.jobs.filter(j => !j.hidden || staff || mine(j.postedBy)).map(j => full ? j : { ...j, salary: "", description: "", applyEmail: "", linkedinUrl: "", postedBy: "" }),
     rfps: db.rfps.filter(r => !r.hidden || staff || mine(r.postedBy)).map(r => full ? r : { ...r, budget: "", description: "", contactEmail: "", postedBy: "", summary: "", ref: "", docRef: "", emd: "", sourceUrl: "", financier: "" }),
     events: db.events.filter(e => e.status !== "Draft" || staff).map(e => {

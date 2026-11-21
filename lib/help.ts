@@ -9,7 +9,7 @@ export const TIP = {
   companyRoles: "Admin manages seats and roles. Content admin keeps the profile, jobs and RFPs up to date. Member has full access but doesn't post.",
   adminLimit: "A company can have up to 2 company admins. Change one of them to another role first.",
   domain: "The email domain PIKOM whitelists for this company, e.g. company.com.my. Anyone with an email on this domain can register until the seats are used — no approval step.",
-  firstAdmin: "The person PIKOM names when whitelisting. They become company admin when they register (or straight away if they already have an account).",
+  firstAdmin: "Main account holder: the person PIKOM names for the company. When they activate with this exact email they become company admin (or straight away if they already have an account). Everyone else on the domain joins as a company member.",
   pause: "Pausing stops everyone from this company signing in (error AX-105), e.g. while a renewal is pending. Nothing is deleted. Restore any time.",
   pikomNo: "The company's PIKOM membership number, for the secretariat's records. Not shown to members.",
   renewal: "When the PIKOM membership renews. Companies due in the next 90 days appear on the admin overview.",

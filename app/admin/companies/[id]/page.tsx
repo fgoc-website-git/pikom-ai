@@ -29,7 +29,7 @@ function Inner() {
             <span className="row" style={{ gap: 6 }}>
               {org.status === "active" ? <span className="badge green">Active</span> : <span className="badge red">Paused</span>}
               {!org.domain && <span className="badge red">Domain needed</span>}
-              <span className="badge">{admins.length ? `Admin: ${admins.map(a => a.name).join(", ")}` : org.mainEmail ? `Admin invited: ${org.mainEmail}` : "No company admin yet"}</span>
+              <span className="badge">{admins.length ? `Admin: ${admins.map(a => a.name).join(", ")}` : org.mainEmail ? `Main account holder (not activated): ${org.mainName ? org.mainName + " · " : ""}${org.mainEmail}` : "No company admin yet"}</span>
             </span>
           </div>
         </div>

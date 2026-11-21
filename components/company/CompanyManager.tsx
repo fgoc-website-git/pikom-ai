@@ -163,6 +163,7 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
   const { updateOrg, removeOrg, setMainHolder, orgUsers } = useStore();
   const [dom, setDom] = useState(org.domain);
   const [adminEmail, setAdminEmail] = useState(org.mainEmail);
+  const [adminName, setAdminName] = useState(org.mainName || "");
   const [meta, setMeta] = useState({ name: org.name });
   const [err, setErr] = useState<Err>(null);
   const n = orgUsers(org.id).length;
@@ -176,10 +177,11 @@ export function CompanySettings({ org, toast, onRemoved }: { org: Org; toast: To
           <Field label="Company email domain" tip={TIP.domain} value={dom} onChange={e => setDom(e.target.value)} placeholder="company.com.my" hint={org.domain ? "Changing this does not move existing accounts." : "Needed before anyone from this company can register."} />
           <div><button className="btn primary">Save domain</button></div>
         </form>
-        <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(setMainHolder(org.id, adminEmail), "Saved"); }}>
-          <h3 className="h3">First company admin</h3>
-          <Field label="Admin's work email" tip={TIP.firstAdmin} type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder={`name@${org.domain || "company.com.my"}`} hint="The person PIKOM names. If they haven't registered, they become admin when they do." />
-          <div><button className="btn primary">Save admin</button></div>
+        <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(setMainHolder(org.id, adminEmail, adminName), "Saved"); }}>
+          <h3 className="h3">Main account holder</h3>
+          <Field label="Full name" value={adminName} onChange={e => setAdminName(e.target.value)} placeholder="e.g. Johary Mustapha" />
+          <Field label="Work email" tip={TIP.firstAdmin} type="email" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder={`name@${org.domain || "company.com.my"}`} hint="The person PIKOM names. If they haven't registered, they become admin when they do." />
+          <div><button className="btn primary">Save main account holder</button></div>
         </form>
       </div>
       <form className="card stack" style={{ gap: 12 }} onSubmit={e => { e.preventDefault(); save(updateOrg(org.id, meta), "Company name saved"); }}>
@@ -223,7 +225,7 @@ export function CompanyManager({ org, toast, onRemoved, initial }: { org: Org; t
       {tab === "profile" && <CompanyProfileForm key={org.id} org={org} toast={toast} />}
       {tab === "posts" && <CompanyPosts org={org} toast={toast} />}
       {tab === "events" && <CompanyEvents org={org} />}
-      {tab === "settings" && <CompanySettings key={org.id + org.domain + org.mainEmail} org={org} toast={toast} onRemoved={onRemoved || (() => {})} />}
+      {tab === "settings" && <CompanySettings key={org.id + org.domain + org.mainEmail + (org.mainName || "")} org={org} toast={toast} onRemoved={onRemoved || (() => {})} />}
     </div>
   );
 }
