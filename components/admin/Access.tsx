@@ -67,7 +67,7 @@ export function Companies({ toast }: { toast: Toast }) {
       <ListBar q={q} setQ={setQ} placeholder="Search company or domain" count={list.length} noun="company"
         sorts={[["name", "Name A–Z"], ["newest", "Newest first"], ["seats", "Most seats used"]]} sort={sort} setSort={setSort}
         filters={[["all", "All", n("all")], ["nodomain", "Domain needed", n("nodomain")], ["nomain", "No admin yet", n("nomain")], ["full", "Seats full", n("full")], ["paused", "Paused", n("paused")]]} filter={filter} setFilter={setFilter}>
-        <Link className="btn" href="/admin/companies/import">Import CSV</Link>
+        <Link className="btn" href="/admin/companies/import">Import from Excel</Link>
         <button className="btn" onClick={() => downloadCsv("ai-xchange-companies.csv", [["Name", "Domain", "Type", "Seats used", "Seat limit", "Admins", "Status"], ...list.map(o => [o.name, o.domain, o.type, seatsUsed(o.id), o.seatLimit, adminsOf(db, o.id).map(a => a.email).join("; ") || o.mainEmail, o.status])])}>Export</button>
         {!adding && <button className="btn primary" onClick={() => setAdding(true)}>+ Whitelist a company</button>}
       </ListBar>
@@ -106,48 +106,80 @@ function parseCsv(text: string): string[][] {
   if (cell || row.length) { row.push(cell); rows.push(row); }
   return rows.map(r => r.map(x => x.trim())).filter(r => r.some(Boolean));
 }
-const HEADS: [keyof ImportRow, RegExp][] = [["name", /name|company/i], ["domain", /domain/i], ["type", /type/i], ["mainEmail", /admin|email|contact/i], ["category", /categ/i], ["about", /about|desc/i]];
+type ImportKey = keyof ImportRow;
+/** Header matchers, checked in this order so "Company admin email" maps to the admin email, not the name. */
+const HEADS: [ImportKey, RegExp][] = [["mainEmail", /admin.*email|^admin|contact email|main email/], ["domain", /domain/], ["type", /membership type|member type|^type/], ["linkedin", /linkedin/], ["website", /website|^url/],
+  ["logo", /logo/], ["phone", /phone|tel/], ["capabilities", /capabilit/], ["industries", /industr/], ["employees", /employee|staff|size/], ["state", /^state|location|hq/], ["category", /categ/], ["about", /about|desc/], ["name", /company name|^name|^company/]];
+const IGNORE = /note|check|status|remark/;
+const LIST_KEYS: ImportKey[] = ["capabilities", "industries"];
+const splitList = (v: string) => v.split(/[;\n,]/).map(x => x.trim()).filter(Boolean);
+function toRows(all: string[][], db: ReturnType<typeof useStore>["db"]) {
+  if (!all.length) return [];
+  const head = all[0].map(h => String(h).toLowerCase().replace(/\*/g, "").trim());
+  const hasHead = head.some(h => HEADS.some(([, re]) => re.test(h))) && !head.some(h => /^[a-z0-9.-]+\.[a-z]{2,}$/.test(h));
+  const map: [ImportKey, number][] = [];
+  if (hasHead) head.forEach((h, i) => { if (!h || IGNORE.test(h)) return; const k = HEADS.find(([key, re]) => re.test(h) && !map.some(([m]) => m === key)); if (k) map.push([k[0], i]); });
+  else (["name", "domain", "type", "mainEmail", "category", "about"] as ImportKey[]).forEach((k, i) => map.push([k, i]));
+  return (hasHead ? all.slice(1) : all).filter(r => !/^example/i.test(String(r[map.find(([k]) => k === "name")?.[1] ?? 0] || "").trim())).map(r => {
+    const o: ImportRow = { name: "", domain: "", type: "Ordinary Member", mainEmail: "", pikomNo: "", renewal: "", category: "", about: "" };
+    const rec = o as unknown as Record<string, unknown>;
+    for (const [k, i] of map) { const v = String(r[i] ?? "").trim(); rec[k] = LIST_KEYS.includes(k) ? splitList(v) : v; }
+    const rawType = String(rec.type || "");
+    o.type = (MEMBER_TYPES as readonly string[]).find(t => t.toLowerCase().startsWith((rawType.toLowerCase().split(" ")[0]) || "#")) as MemberType || "Ordinary Member";
+    o.domain = o.domain.toLowerCase().replace(/^@/, "").replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+    o.mainEmail = o.mainEmail.toLowerCase();
+    const dom = o.domain;
+    const exists = db.orgs.find(x => (dom && x.domain === dom) || x.name.toLowerCase() === o.name.toLowerCase());
+    const problem = !o.name ? "Name missing" : !dom ? "Email domain missing" : !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) ? "Invalid domain" : !o.mainEmail ? "Admin email missing" : !o.mainEmail.endsWith("@" + dom) ? `Admin email not on @${dom}` : "";
+    return { o, status: problem || (exists ? "Fill blanks (exists)" : "New"), problem: !!problem };
+  });
+}
 export function CompanyImport() {
   const { db, importOrgs } = useStore();
   const router = useRouter();
   const [text, setText] = useState("");
+  const [sheet, setSheet] = useState<{ name: string; data: string[][] } | null>(null);
   const [res, setRes] = useState<{ ok: boolean; msg?: string; code?: string } | null>(null);
-  const rows = useMemo(() => {
-    const all = parseCsv(text); if (!all.length) return [];
-    const head = all[0]; const hasHead = HEADS.some(([, re]) => head.some(h => re.test(h))) && !head.some(h => /\.[a-z]{2,}$/.test(h) && !/\s/.test(h) && h.includes("."));
-    const map = hasHead ? HEADS.map(([k, re]) => [k, head.findIndex(h => re.test(h))] as const) : HEADS.map(([k], i) => [k, i] as const);
-    return (hasHead ? all.slice(1) : all).map(r => {
-      const o = { pikomNo: "", renewal: "", ...Object.fromEntries(map.map(([k, i]) => [k, i >= 0 ? r[i] || "" : ""])) } as ImportRow;
-      o.type = (MEMBER_TYPES as readonly string[]).find(t => t.toLowerCase().startsWith((o.type || "").toLowerCase().split(" ")[0] || "#")) as MemberType || "Ordinary Member";
-      const dom = o.domain.toLowerCase().replace(/^@/, "");
-      const exists = db.orgs.find(x => (dom && x.domain === dom) || x.name.toLowerCase() === o.name.toLowerCase());
-      const problem = !o.name ? "Name missing" : dom && !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom) ? "Invalid domain" : o.mainEmail && dom && !o.mainEmail.toLowerCase().endsWith("@" + dom) ? `Admin email not on @${dom}` : "";
-      return { o, status: problem || (exists ? `Update ${exists.name}` : "New") , problem: !!problem };
-    });
-  }, [text, db]);
+  const [fileErr, setFileErr] = useState("");
+  const rows = useMemo(() => toRows(sheet ? sheet.data : parseCsv(text), db), [text, sheet, db]);
+  const openFile = async (f: File) => {
+    setRes(null); setFileErr("");
+    if (/\.xlsx$/i.test(f.name)) {
+      try {
+        const { default: readXlsxFile } = await import("read-excel-file/browser");
+        const sheets = await readXlsxFile(f);
+        const pick = sheets.find(s => /member compan/i.test(s.sheet)) || sheets.find(s => !/instruction|list/i.test(s.sheet)) || sheets[0];
+        const data = pick.data.map(r => r.map(c => c == null ? "" : c instanceof Date ? c.toISOString().slice(0, 10) : String(c))).filter(r => r.some(c => c.trim()));
+        setSheet({ name: `${f.name} · ${pick.sheet}`, data }); setText("");
+      } catch { setFileErr("Couldn't read this Excel file. Save it as .xlsx (or CSV) and try again."); }
+    } else { setSheet(null); setText(await f.text()); }
+  };
   const good = rows.filter(r => !r.problem);
   return (
     <div className="stack" style={{ gap: 16 }}>
       <Link href="/admin/companies" className="small">← Companies</Link>
       <div className="card stack" style={{ gap: 12 }}>
         <h2 className="h3">1. Add your file <Tip text={TIP.csv} /></h2>
-        <p className="small muted">Columns: <b>name</b>, domain, type, admin email, category, about. A header row is optional. Export from Excel with “Save as CSV”.</p>
+        <p className="small muted">Upload the Secretariat's filled-in <b>Member Companies</b> Excel file (.xlsx) or a CSV. The example row, Secretariat notes and Check columns are ignored. Existing companies (same domain or name) only get their empty fields filled.</p>
         <div className="row">
-          <label className="btn">Choose CSV file<input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={async e => { const f = e.target.files?.[0]; if (f) setText(await f.text()); }} /></label>
-          <button className="btn" onClick={() => downloadCsv("ai-xchange-import-template.csv", [["name", "domain", "type", "admin email", "category", "about"], ["Example Sdn. Bhd.", "example.com.my", "Ordinary Member", "ceo@example.com.my", "AI Platform", "What the company does"]])}>Download template</button>
+          <label className="btn primary">Choose Excel or CSV file<input type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) openFile(f); e.target.value = ""; }} /></label>
+          <a className="btn" href="/templates/ai-xchange-member-companies.xlsx" download>Download Excel template</a>
+          {sheet && <span className="small muted">Loaded: {sheet.name} <button className="link-btn" onClick={() => setSheet(null)}>clear</button></span>}
         </div>
-        <textarea className="textarea" rows={6} placeholder="…or paste rows here" value={text} onChange={e => { setText(e.target.value); setRes(null); }} />
+        {fileErr && <ErrorBox msg={fileErr} />}
+        {res?.ok && rows.length === 0 && <div className="row" style={{ gap: 10 }}><div className="alert ok" style={{ flex: 1 }}>{res.msg}</div><button className="btn" onClick={() => router.push("/admin/companies")}>Back to companies</button></div>}
+        {!sheet && <textarea className="textarea" rows={5} placeholder="…or paste CSV rows here" value={text} onChange={e => { setText(e.target.value); setRes(null); }} />}
       </div>
       {rows.length > 0 && (
         <div className="card stack" style={{ gap: 12 }}>
           <div className="row between"><h2 className="h3">2. Check the preview</h2><span className="small muted">{good.length} ready · {rows.length - good.length} with problems (skipped)</span></div>
           <div className="table-wrap" style={{ maxHeight: 420, overflow: "auto" }}><table>
-            <thead><tr><th>Company</th><th>Domain</th><th>Type</th><th>Admin email</th><th>Result</th></tr></thead>
-            <tbody>{rows.slice(0, 300).map((r, i) => <tr key={i}><td><b>{r.o.name || "—"}</b></td><td>{r.o.domain || <span className="muted">—</span>}</td><td className="small">{r.o.type}</td><td className="small">{r.o.mainEmail || "—"}</td><td><span className={`badge ${r.problem ? "red" : r.status === "New" ? "green" : "blue"}`}>{r.status}</span></td></tr>)}</tbody>
+            <thead><tr><th>Company</th><th>Domain</th><th>Type</th><th>Admin email</th><th>Category · State</th><th>Result</th></tr></thead>
+            <tbody>{rows.slice(0, 300).map((r, i) => <tr key={i}><td><b>{r.o.name || "—"}</b></td><td>{r.o.domain || <span className="muted">—</span>}</td><td className="small">{r.o.type}</td><td className="small">{r.o.mainEmail || "—"}</td><td className="small">{[r.o.category, r.o.state].filter(Boolean).join(" · ") || "—"}</td><td><span className={`badge ${r.problem ? "red" : r.status === "New" ? "green" : "blue"}`}>{r.status}</span></td></tr>)}</tbody>
           </table></div>
           {res && (res.ok ? <div className="alert ok">{res.msg}</div> : <ErrorBox code={res.code} msg={res.msg || ""} />)}
           <div className="row">
-            <button className="btn primary" disabled={!good.length} onClick={() => { const r = importOrgs(good.map(g => g.o)); setRes(r); if (r.ok) setText(""); }}>Import {good.length} compan{good.length === 1 ? "y" : "ies"}</button>
+            <button className="btn primary" disabled={!good.length} onClick={() => { const r = importOrgs(good.map(g => g.o)); setRes(r); if (r.ok) { setText(""); setSheet(null); } }}>Import {good.length} compan{good.length === 1 ? "y" : "ies"}</button>
             {res?.ok && <button className="btn" onClick={() => router.push("/admin/companies")}>Back to companies</button>}
           </div>
         </div>)}

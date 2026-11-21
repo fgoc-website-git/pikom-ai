@@ -677,7 +677,16 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
     }
     case "importOrgs": {
       if (!sup) return deny;
-      const rows = (args[0] || []) as { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string }[];
+      const rows = (args[0] || []) as { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string; website?: string; capabilities?: string[]; industries?: string[]; state?: string; employees?: string; phone?: string; linkedin?: string; logo?: string }[];
+      const str = (v: unknown, max = 400) => String(v ?? "").trim().slice(0, max);
+      const arr = (v: unknown) => (Array.isArray(v) ? v : []).map(x => str(x, 80)).filter(Boolean).slice(0, 20);
+      /** Profile fields from the import. For an existing company only empty fields are filled. */
+      const prof = (r: typeof rows[number], cur?: CompanyProfile): CompanyProfile => {
+        const base = cur || emptyProfile();
+        const pickS = (k: "about" | "website" | "category" | "state" | "employees" | "phone" | "linkedin", max = 400) => base[k] || str((r as Record<string, unknown>)[k], max);
+        return { ...base, about: pickS("about"), website: pickS("website", 200), category: pickS("category", 60), state: pickS("state", 60), employees: pickS("employees", 30), phone: pickS("phone", 40), linkedin: pickS("linkedin", 200),
+          capabilities: base.capabilities?.length ? base.capabilities : arr(r.capabilities), industries: base.industries?.length ? base.industries : arr(r.industries), logo: base.logo || str(r.logo, 400) || undefined };
+      };
       let d = db; let added = 0, updated = 0; const skipped: string[] = [];
       for (const r of rows.slice(0, 1000)) {
         const name = String(r.name || "").trim(); const dom = String(r.domain || "").trim().toLowerCase().replace(/^@/, "");
@@ -690,10 +699,10 @@ export function act(db: DB, me: User | null, name: ActionName, args: any[], ids:
         const target = byDomain || byName;
         if (target) {
           if (byDomain && byName && byDomain.id !== byName.id) { skipped.push(`${name}: domain already used by ${byDomain.name}`); continue; }
-          d = { ...d, orgs: d.orgs.map(o => o.id !== target.id ? o : { ...o, domain: o.domain || dom, mainEmail: o.mainEmail || main, pikomNo: r.pikomNo || o.pikomNo, renewal: r.renewal || o.renewal, type: r.type || o.type, profile: { ...o.profile, category: o.profile.category || r.category || "", about: o.profile.about || r.about || "" } }) };
+          d = { ...d, orgs: d.orgs.map(o => o.id !== target.id ? o : { ...o, domain: o.domain || dom, mainEmail: o.mainEmail || main, pikomNo: r.pikomNo || o.pikomNo, renewal: r.renewal || o.renewal, type: r.type || o.type, profile: prof(r, o.profile) }) };
           updated++;
         } else {
-          const o: Org = { id: uid() || rand(), domain: dom, name, type: r.type || "Ordinary Member", pikomNo: r.pikomNo || "", mainEmail: main, seatLimit: settingsOf(d).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: r.renewal || "", profile: { ...emptyProfile(), category: r.category || "", about: r.about || "" } };
+          const o: Org = { id: uid() || rand(), domain: dom, name, type: r.type || "Ordinary Member", pikomNo: r.pikomNo || "", mainEmail: main, seatLimit: settingsOf(d).defaultSeatLimit, status: "active", whitelistedOn: today(), renewal: r.renewal || "", profile: prof(r) };
           d = { ...d, orgs: [...d.orgs, o] }; added++;
         }
       }

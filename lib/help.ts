@@ -33,7 +33,7 @@ export const TIP = {
   showLinkedin: "When off, your LinkedIn link isn't shown to other members.",
   notifications: "Email delivery switches on once the email service is connected. Your choices are saved now.",
   signOutAll: "Signs you out on every other browser and device. You stay signed in here.",
-  csv: "One company per row. Columns: name, domain, type, admin email, category, about. Only name is required. Existing companies (same name or domain) are updated, not duplicated.",
+  csv: "Use the Excel template: one company per row. Required: company name, membership type, email domain and company admin email. Existing companies (same domain or name) only get their empty fields filled — nothing is overwritten.",
   statCompanies: "Shown on the home page as 'Companies on AI Xchange'. A fixed number for now.",
   statMembers: "Shown on the home page as 'PIKOM member companies'.",
   defaultSeats: "Seats given to newly whitelisted companies. Existing companies keep their own limit.",
@@ -59,8 +59,8 @@ export const ERR_HELP: Record<string, string> = {
 /** Short "what is this page for" text, shown by the ? button on admin pages. */
 export const PAGE_HELP: Record<string, string[]> = {
   overview: ["Your to-do list: anything that needs attention across AI Xchange.", "Click a card to open the filtered list."],
-  companies: ["Every PIKOM member company on AI Xchange. Whitelisting a company adds it to the member directory.", "Use Import CSV to load many companies at once. Click Manage to open a company: people and seats, profile, posts, event sign-ups, domain and membership."],
-  import: ["Paste or upload a CSV of companies. Check the preview, then import.", "Companies that already exist (same name or domain) are updated — e.g. adding a missing domain — not duplicated."],
+  companies: ["Every PIKOM member company on AI Xchange. Whitelisting a company adds it to the member directory.", "Use Import from Excel to load the Secretariat's member list at once. Click Manage to open a company: people and seats, profile, posts, event sign-ups, domain and membership."],
+  import: ["Upload the Secretariat's Member Companies Excel file (or a CSV). Check the preview, then import.", "Companies that already exist (same name or domain) are updated — e.g. adding a missing domain — not duplicated."],
   individuals: ["PIKOM Individual Members: people who joined in their own name.", "Whitelist the exact email; the person then registers with it and gets full access."],
   people: ["Everyone who can sign in. Click a name for their details, events and a password reset.", "Export to CSV for reporting."],
   person: ["One person's account: company and role, events, and admin actions."],

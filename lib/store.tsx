@@ -8,7 +8,8 @@ import type { MemberType } from "./options";
 export * from "./engine";
 
 const EMPTY: DB = normalize({ orgs: [], individuals: [], users: [], jobs: [], rfps: [], events: [], content: [], announcements: [], spotlight: [], log: [] });
-export type ImportRow = { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string };
+export type ImportRow = { name: string; domain: string; type: MemberType; mainEmail: string; pikomNo: string; renewal: string; category: string; about: string;
+  website?: string; capabilities?: string[]; industries?: string[]; state?: string; employees?: string; phone?: string; linkedin?: string; logo?: string };
 
 type RegisterInput = { email: string; name: string; password: string; jobTitle: string; consent: boolean; asGuest?: boolean; company?: string };
 interface Ctx {
