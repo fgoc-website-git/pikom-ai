@@ -89,6 +89,8 @@ export interface Content {
   date: string; policyStatus: string; featured: boolean; published: boolean;
   /** Cover image (path or URL), direct PDF link (opens/downloads on click), date shown e.g. "July 2026", key findings. */
   image?: string; fileUrl?: string; dateLabel?: string; highlights?: string[];
+  /** Slide images for an in-page viewer (presentations), and a 16:9 cover instead of a portrait one. */
+  slides?: string[]; coverWide?: boolean;
 }
 export interface Announcement { id: string; text: string; link: string; active: boolean; }
 export interface LogEntry { at: string; who: string; what: string; }
@@ -154,6 +156,11 @@ export function normalize(d: DB): DB {
     out.rfps = out.rfps.map(r => r.postedBy ? r : { ...r, postedBy: "ritesh.devarajan@forest-interactive.com" });
     out.migrations = [...out.migrations!, "verified-only-2026-11"];
   }
+  // 23 Nov 2026: PIKOM AI Chapter members briefing deck (15 Oct 2026), supplied by Ritesh.
+  if (!out.migrations!.includes("deck-2026-11")) {
+    if (!out.content.some(c => c.id === BRIEFING_2026_10.id)) out.content = [BRIEFING_2026_10, ...out.content];
+    out.migrations = [...out.migrations!, "deck-2026-11"];
+  }
   return out;
 }
 const vc = (id: string, kind: ContentKind, title: string, source: string, date: string, summary: string, url: string, extra: Partial<Content> = {}): Content => ({
@@ -181,6 +188,14 @@ export const VERIFIED_CONTENT_2026_11: Content[] = [
     "https://hai.stanford.edu/ai-index/2026-ai-index-report",
     { dateLabel: "2026", highlights: ["A record 362 reported AI incidents in 2025", "Generative AI reached 53% adoption within three years"] }),
 ];
+export const BRIEFING_2026_10: Content = {
+  id: "rs-malaysia-ai-2026-briefing", kind: "research", title: "Malaysia AI 2026: From Capacity to Capability", source: "PIKOM AI Chapter · Members briefing", date: "2026-10-15", dateLabel: "15 October 2026",
+  summary: "What changed in Malaysia's AI landscape in 24 months, where value is getting stuck, and six moves for the next 12 months. Presented at the PIKOM AI Chapter members briefing; data as of 11 October 2026.",
+  highlights: ["157 PIKOM member organisations across nine roles in the AI stack", "38% of Malaysian businesses surveyed consistently use AI; 67% of them only for basic tasks", "AI Governance Bill (three risk tiers) expected in Parliament by Q1 2027", "Six moves: map AI use, name one owner, pick 2–3 workflows, fix data, reskill staff, claim incentives"],
+  body: "", url: "", file: "", fileUrl: "/research/PIKOM_Malaysia_AI_2026_Capacity_to_Capability.pdf", image: "/research/malaysia-ai-2026/s-01.jpg", coverWide: true,
+  slides: Array.from({ length: 27 }, (_, i) => `/research/malaysia-ai-2026/s-${String(i + 1).padStart(2, "0")}.jpg`),
+  policyStatus: "", featured: true, published: true,
+};
 const PIKOM_RESEARCH_PAGE = "https://pikom.org.my/research-white-paper/";
 export const RESEARCH_2026_11: Content[] = [
   { id: "rs-econ-outlook-2026-07", kind: "research", title: "Malaysia Economic Outlook Review — July 2026", source: "PIKOM Research", date: "2026-07-21", dateLabel: "July 2026",

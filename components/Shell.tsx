@@ -71,7 +71,7 @@ export function Header() {
           <img src="/brand/ai-xchange-logo.png" alt="AI Xchange Malaysia — a PIKOM chapter" className="brand-logo" />
         </Link>
         <nav id="mainnav" aria-label="Main" className={`mainnav${open ? " open" : ""}`}>
-          {NAV.map(([h, l]) => <Link key={h} href={h} className={path.startsWith(h) ? "on" : ""} onClick={() => setOpen(false)}>{l}</Link>)}
+          {NAV.map(([h, l]) => <Link key={h} href={h} className={path.startsWith(h) || (h === "/about" && path.startsWith("/committee")) ? "on" : ""} onClick={() => setOpen(false)}>{l}</Link>)}
         </nav>
         <div className="head-actions">
           {me ? <>
@@ -98,7 +98,7 @@ export function Footer() {
   const st = settingsOf(db);
   const year = new Date().getFullYear();
   const cols: [string, [string, string, boolean?][]][] = [
-    ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"], ["/about", "About the AI Chapter"]]],
+    ["Explore", [["/members", "Member directory"], ["/opportunities", "Business RFPs"], ["/opportunities?tab=jobs", "AI jobs"], ["/events", "Events"], ["/insights", "Insights & policy"], ["/about", "About the AI Chapter"], ["/committee", "Committee"]]],
     ["Membership", [["/membership", "Membership & access"], [PIKOM_JOIN_URL, "Join PIKOM", true], ["/register", "Activate member access"], ["/signin", "Sign in"], ["https://pikom.org.my", "pikom.org.my", true]]],
     ["Help", [["/membership#contact", "Contact the secretariat"], ["/privacy", "Privacy notice (PDPA 2010)"], ["/terms", "Terms of use"]]],
   ];
