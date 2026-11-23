@@ -18,7 +18,7 @@ export const COMMITTEE: CommitteeMember[] = [
   { name: "TS Koay", role: "Committee", org: "Dell Global Business Centre", photo: "/committee/ts-koay.jpg" },
   { name: "JH Soong", role: "Committee", org: "VSTECS Berhad", photo: "/committee/jh-soong.jpg" },
   { name: "Ong Chin Seong", role: "Committee", org: "Powerware Systems", photo: "/committee/cs-ong.jpg" },
-  { name: "Keanne Leong", role: "Committee", org: "Bridgenet", photo: "/committee/keane-leong.jpg" },
+  { name: "Keane Leong", role: "Committee", org: "Bridgenet", photo: "/committee/keane-leong.jpg" },
   { name: "Joo Swee Keong", role: "Committee", org: "Hexphyre Technologies", photo: "/committee/sk-joo.jpg" },
   { name: "Dr Dzaharudin Mansor", role: "Committee", photo: "/committee/dzahar.jpg" },
   { name: "Chan Tze Ming", role: "Committee", org: "Glocomp Systems", photo: "/committee/tze-ming-chan.jpg" },
