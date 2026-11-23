@@ -1,8 +1,9 @@
 "use client";
+import type React from "react";
 import Link from "next/link";
 import { ABOUT } from "@/lib/about";
 
-export function AboutBlocks({ compact }: { compact?: boolean }) {
+export function AboutBlocks({ compact, after }: { compact?: boolean; after?: React.ReactNode }) {
   return (
     <section className="wrap section">
       {compact && <div className="section-head"><div><h2 className="h2">About the PIKOM AI Chapter</h2><p>Why AI Xchange exists.</p></div><Link href="/about" className="more">About us →</Link></div>}
@@ -14,6 +15,7 @@ export function AboutBlocks({ compact }: { compact?: boolean }) {
       <ol className="objectives">
         {ABOUT.objectives.map((o, i) => <li key={o.title} className="card"><span className="obj-n">{i + 1}</span><div><b>{o.title}</b><p className="small muted" style={{ margin: "4px 0 0" }}>{o.text}</p></div></li>)}
       </ol>
+      {after}
     </section>
   );
 }
