@@ -29,7 +29,7 @@ export default function Committee() {
     <section className="wrap section stack" style={{ gap: 36 }}>
       <div className="stack" style={{ gap: 14 }}><h2 className="h2">Chair and Deputy Chairs</h2><div className="people lead">{lead.map(p => <Person key={p.name} p={p} big />)}</div></div>
       <div className="stack" style={{ gap: 14 }}><h2 className="h2">Committee members</h2><div className="people">{members.map(p => <Person key={p.name} p={p} />)}</div></div>
-      <div className="stack" style={{ gap: 14 }}><h2 className="h2">Advisors</h2><div className="people">{advisors.map(p => <Person key={p.name} p={p} />)}</div></div>
+      {advisors.length > 0 && <div className="stack" style={{ gap: 14 }}><h2 className="h2">Advisors</h2><div className="people">{advisors.map(p => <Person key={p.name} p={p} />)}</div></div>}
       <p className="small muted">Committee {COMMITTEE_TERM}. Source: PIKOM AI Chapter.</p>
     </section>
   </>);

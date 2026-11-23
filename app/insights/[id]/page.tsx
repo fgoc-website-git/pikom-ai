@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
 import { fmtDate } from "@/components/ui";
+import { downloadHref } from "@/lib/content";
 
 /** In-page slide viewer for presentations shared as Research / White Papers. */
 export default function SlidesPage() {
@@ -27,7 +28,7 @@ export default function SlidesPage() {
       <span className="eyebrow" style={{ color: "#93C5FD", display: "block", marginTop: 12 }}>{c.source} · {c.dateLabel || fmtDate(c.date)}</span>
       <h1 className="h1">{c.title}</h1>
       <p>{c.summary}</p>
-      {c.fileUrl && <div className="row" style={{ marginTop: 14 }}><a className="btn accent" href={c.fileUrl} target="_blank" rel="noreferrer">Download PDF ↓</a></div>}
+      {c.fileUrl && <div className="row" style={{ marginTop: 14 }}><a className="btn accent" href={downloadHref(c)} download={c.fileUrl.startsWith("/") ? "" : undefined}>Download PDF ↓</a></div>}
     </div></section>
     <section className="wrap section stack" style={{ gap: 14 }}>
       <div className="slide-stage">
@@ -35,7 +36,7 @@ export default function SlidesPage() {
         <button className="slide-nav prev" aria-label="Previous slide" disabled={i === 0} onClick={() => step(-1)}>‹</button>
         <button className="slide-nav next" aria-label="Next slide" disabled={i === n - 1} onClick={() => step(1)}>›</button>
       </div>
-      <div className="row between"><span className="small muted">Slide {i + 1} of {n} · use ← → keys</span>{c.fileUrl && <a className="small" href={c.fileUrl} target="_blank" rel="noreferrer">Download PDF ↓</a>}</div>
+      <div className="row between"><span className="small muted">Slide {i + 1} of {n} · use ← → keys</span>{c.fileUrl && <a className="small" href={downloadHref(c)} download={c.fileUrl.startsWith("/") ? "" : undefined}>Download PDF ↓</a>}</div>
       <div className="slide-strip" ref={strip}>{c.slides!.map((s, k) => <button key={s} data-i={k} className={k === i ? "on" : ""} onClick={() => setI(k)} aria-label={`Go to slide ${k + 1}`}><img src={s} alt="" loading="lazy" /></button>)}</div>
     </section>
   </>);

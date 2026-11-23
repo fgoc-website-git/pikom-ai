@@ -93,12 +93,12 @@ export default function Home() {
 
       <Carousel title="Insights & policy" sub="Policy updates, PIKOM research and white papers, and industry news." moreHref="/insights" moreLabel="All insights" label="insights">
         {featured.map(c => (
-          <Link role="listitem" key={c.id} href={c.fileUrl || `/insights?tab=${c.kind}`} target={c.fileUrl ? "_blank" : undefined} rel={c.fileUrl ? "noreferrer" : undefined} className="card stack mc-card" style={{ gap: 8, color: "var(--ink)" }}>
+          <Link role="listitem" key={c.id} href={c.slides?.length ? `/insights/${c.id}` : c.fileUrl || `/insights?tab=${c.kind}`} target={c.fileUrl && !c.slides?.length ? "_blank" : undefined} rel={c.fileUrl ? "noreferrer" : undefined} className="card stack mc-card" style={{ gap: 8, color: "var(--ink)" }}>
             {c.image && <span className="mc-cover"><img src={c.image} alt="" /></span>}
             <span className="small muted" style={{ fontWeight: 600 }}>{c.kind === "policy" ? "Policy & governance" : c.kind === "research" ? "Research / White Papers" : "News"} · {c.dateLabel || fmtDate(c.date)}</span>
             <h3 className="h3">{c.title}</h3>{c.policyStatus && <span className="badge orange" style={{ alignSelf: "flex-start" }}>{c.policyStatus}</span>}
             <p className="small muted mc-about">{c.summary}</p>
-            <span className="small muted" style={{ marginTop: "auto" }}>{c.source}{c.fileUrl ? " · PDF ↓" : ""}</span>
+            <span className="small muted" style={{ marginTop: "auto" }}>{c.source}{c.slides?.length ? " · Slides" : c.fileUrl ? " · PDF" : ""}</span>
           </Link>))}
       </Carousel>
 

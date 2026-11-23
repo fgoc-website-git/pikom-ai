@@ -156,6 +156,11 @@ export function normalize(d: DB): DB {
     out.rfps = out.rfps.map(r => r.postedBy ? r : { ...r, postedBy: "ritesh.devarajan@forest-interactive.com" });
     out.migrations = [...out.migrations!, "verified-only-2026-11"];
   }
+  // 23 Nov 2026: Insights links go straight to the write-up, not to the PIKOM website's listing page.
+  if (!out.migrations!.includes("research-links-2026-11")) {
+    out.content = out.content.map(c => c.fileUrl && /pikom\.org\.my\/research-white-paper\/?$/.test(c.url) ? { ...c, url: "" } : c);
+    out.migrations = [...out.migrations!, "research-links-2026-11"];
+  }
   // 23 Nov 2026: PIKOM AI Chapter members briefing deck (15 Oct 2026), supplied by Ritesh.
   if (!out.migrations!.includes("deck-2026-11")) {
     if (!out.content.some(c => c.id === BRIEFING_2026_10.id)) out.content = [BRIEFING_2026_10, ...out.content];
@@ -196,20 +201,19 @@ export const BRIEFING_2026_10: Content = {
   slides: Array.from({ length: 27 }, (_, i) => `/research/malaysia-ai-2026/s-${String(i + 1).padStart(2, "0")}.jpg`),
   policyStatus: "", featured: true, published: true,
 };
-const PIKOM_RESEARCH_PAGE = "https://pikom.org.my/research-white-paper/";
 export const RESEARCH_2026_11: Content[] = [
   { id: "rs-econ-outlook-2026-07", kind: "research", title: "Malaysia Economic Outlook Review — July 2026", source: "PIKOM Research", date: "2026-07-21", dateLabel: "July 2026",
     summary: "A sector-by-sector review of Malaysia's Q2 2026 economic performance, structural risks and policy landscape, drawing on DOSM and Bank Negara data, with a business outlook.",
     highlights: ["Q2 2026 GDP grew 5.8% year on year (advance estimate), up from 5.4% in Q1", "H1 2026 growth of 5.6%, against 4.5% in H1 2025", "June 2026 inflation eased to 1.9%", "BNM forecasts 4.0–5.0% growth for 2026; the review sees the upper half as plausible"],
-    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/PIKOM/Malaysia_Economic_Outlook_Review-July2026.pdf", image: "/research/econ-outlook-jul-2026.jpg", policyStatus: "", featured: true, published: true },
+    body: "", url: "", file: "", fileUrl: "https://pikom.org.my/PIKOM/Malaysia_Economic_Outlook_Review-July2026.pdf", image: "/research/econ-outlook-jul-2026.jpg", policyStatus: "", featured: true, published: true },
   { id: "rs-mv-aig-2026", kind: "research", title: "A Minimum Viable AI Governance (MV-AIG)", source: "PIKOM Oversight Committee", date: "2026-06-01", dateLabel: "June 2026",
     summary: "A lightweight AI governance model for small and micro organisations that use AI rather than build it, focused on everyday uses like document analysis and meeting transcription.",
     highlights: ["Classify every AI tool by impact (low, medium, high) before use", "Clear prohibited uses, e.g. decisions about people without human review", "Real AI incident case studies", "A three-phase roadmap: establish, operationalise, maintain"],
-    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/Research/MV_AIG_V5.pdf", image: "/research/mv-aig-2026.jpg", policyStatus: "", featured: true, published: true },
+    body: "", url: "", file: "", fileUrl: "https://pikom.org.my/Research/MV_AIG_V5.pdf", image: "/research/mv-aig-2026.jpg", policyStatus: "", featured: true, published: true },
   { id: "rs-cyber-resilience-2026", kind: "research", title: "Beyond Compliance: The State of Cyber Resilience in Malaysia 2026", source: "Cybersecurity by PIKOM", date: "2026-04-01", dateLabel: "April 2026",
     summary: "PIKOM's national baseline report from a March 2026 survey of mainly PIKOM members: incidents and threats, Zero Trust, budgets and staffing, third-party risk, AI and quantum readiness and the Cyber Security Act 2024, with recommendations.",
     highlights: ["35.9% had at least one successful cyber incident in 2024–2025", "51.3% have annual cyber budgets below RM250,000", "78.8% have five or fewer dedicated cyber staff"],
-    body: "", url: PIKOM_RESEARCH_PAGE, file: "", fileUrl: "https://pikom.org.my/2026/Cyber_Resilience_in_Malaysia_2026.pdf", image: "/research/cyber-resilience-2026.jpg", policyStatus: "", featured: true, published: true },
+    body: "", url: "", file: "", fileUrl: "https://pikom.org.my/2026/Cyber_Resilience_in_Malaysia_2026.pdf", image: "/research/cyber-resilience-2026.jpg", policyStatus: "", featured: true, published: true },
 ];
 const tot = (ref: string, title: string, buyer: string, sector: string, procurementType: string, publishedOn: string, closes: string, docRef: string, budget: string, summary: string, description: string): Rfp => ({
   id: "tot" + ref.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 16), ref: /^\d+$/.test(ref) ? `TOT ${ref}` : ref, title, buyer, orgId: null, sector, type: "Public tender", budget, closes, description, summary, contactEmail: "",
