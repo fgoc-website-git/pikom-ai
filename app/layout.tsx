@@ -7,7 +7,7 @@ import { ConfirmHost, UndoBar } from "@/components/ui";
 export const metadata: Metadata = {
   title: { default: "AI Xchange Malaysia — a PIKOM chapter", template: "%s | AI Xchange Malaysia" },
   description: "The information and networking platform for PIKOM members working in AI: verified member directory, opportunities, jobs, events, insights and policy.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://pikom-ai.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://aixchange.org.my"),
   openGraph: { type: "website", locale: "en_MY", siteName: "AI Xchange Malaysia", title: "AI Xchange Malaysia — a PIKOM chapter" },
   robots: { index: false, follow: false },
 };

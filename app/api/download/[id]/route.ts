@@ -17,7 +17,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (src.protocol !== "https:") return NextResponse.redirect(src, 302);
   const name = (decodeURIComponent(src.pathname.split("/").pop() || "") || c.title).replace(/[^\w.\- ]+/g, "_").replace(/(\.pdf)?$/i, ".pdf");
   try {
-    const r = await fetch(src, { redirect: "follow", signal: AbortSignal.timeout(20000), headers: { "User-Agent": "AI-Xchange-Malaysia/1.0 (+https://pikom-ai.vercel.app)" } });
+    const r = await fetch(src, { redirect: "follow", signal: AbortSignal.timeout(20000), headers: { "User-Agent": "AI-Xchange-Malaysia/1.0 (+https://aixchange.org.my)" } });
     const type = r.headers.get("content-type") || "";
     const size = Number(r.headers.get("content-length") || 0);
     if (!r.ok || !r.body || !/pdf|octet-stream/i.test(type) || size > 60_000_000) return NextResponse.redirect(src, 302);
